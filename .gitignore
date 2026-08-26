@@ -9,6 +9,14 @@ out/
 *.log
 logs/
 
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Deployment output
+.vercel/
+
 # Environment files
 .env
 .env.local
@@ -16,8 +24,15 @@ logs/
 .env.test.local
 .env.production.local
 
+# Local build brief
+p3r-portfolio-prompt.md
+
 # OS and editor files
 .DS_Store
 Thumbs.db
 .vscode/
 *.swp
+
+# Local tooling files
+.eslintcache
+*.tsbuildinfo
