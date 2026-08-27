@@ -15,7 +15,7 @@ export const projects: Project[] = [
     title: 'Simple Portfolio',
     type: 'FINISHED',
     year: '2021',
-    desc: 'My first portfolio website, made from simple HTML, CSS, and JS. This website gave me so much experience, especially when working with responsive layouts.',
+    desc: 'My first portfolio website, made it from simple html, css, and js. This website gave me so much experience, especially when i work with the responsive.',
     stack: 'HTML · CSS · JavaScript',
     accent: 'cyan',
     image: 'portfolio',
@@ -48,7 +48,7 @@ export const projects: Project[] = [
     title: 'Web Auction',
     type: 'FINISHED',
     year: '2022',
-    desc: 'A school project built as an auction platform with CodeIgniter and MySQL. It works locally but has not been deployed.',
+    desc: 'Made it from CodeIgniter Framework with MySql database, this is my school project, and had it done. Unfortunately, i havent deploy it yet.',
     stack: 'PHP · CodeIgniter · MySQL',
     accent: 'muted',
     image: 'auction',
@@ -80,7 +80,7 @@ export const projects: Project[] = [
     title: 'Online Wedding Invitation',
     type: 'FINISHED',
     year: '2023',
-    desc: 'A digital wedding invitation built with Next.js, Tailwind CSS, and Framer Motion. It has responsive layouts, search-friendly pages, and a SendGrid contact form. It was deployed on Vercel and used by real guests.',
+    desc: 'A digital wedding invitation site built with Next.js, Tailwind CSS, and Framer Motion. Features SEO-friendly routing, fully responsive design, and integrated email service (SendGrid) for the contact form. Deployed on Vercel and used to invite real guests.',
     stack: 'Next.js · Tailwind · Framer Motion · SendGrid',
     accent: 'gold',
     image: 'wedding',
@@ -91,7 +91,7 @@ export const projects: Project[] = [
     title: 'Online Marketplace',
     type: 'FINISHED',
     year: '2023',
-    desc: 'A full-stack marketplace built with React, Express, and MongoDB. It includes client-side routing, data fetching, a CRUD API, JWT authentication, and Google Analytics. The frontend runs on Vercel and the backend runs on Railway.',
+    desc: 'A full-stack marketplace built with React, Express, and MongoDB. Implements React Router for navigation, Axios for data fetching, a RESTful CRUD API for product data, JWT-based login/register, and Google Analytics integration. Frontend deployed to Vercel, backend deployed to Railway.',
     stack: 'React · Express · MongoDB',
     accent: 'gold',
     image: 'market',
@@ -112,10 +112,10 @@ export type Role = {
 
 export const work: Role[] = [
   {
-    date: 'MAR 2026 — AUG 2026',
+    date: 'MAR 2026 — SEP 2026',
     role: 'Backend Intern',
     company: 'Radius Data Solusi',
-    desc: 'Built a CRM platform from scratch with Go and Gin. It manages sales pipelines, deals, and customer relationships. I worked on role-based access, email notifications, Google Drive integration, and a drag-and-drop Kanban board. The work covered database design, API structure, authentication, and frontend integration.',
+    desc: 'Built a comprehensive CRM platform from scratch using Framework Gin Go that manages sales pipelines, deals, and customer relationships. Implemented enterprise-grade features including role-based access control, email notifications, Google Drive integration, and a drag-and-drop Kanban board. Demonstrated expertise in full-stack development, database design, API architecture, authentication, and modern frontend patterns.',
     stack: 'Go · Gin · PostgreSQL',
   },
   {
@@ -123,7 +123,7 @@ export const work: Role[] = [
     role: 'Frontend Intern',
     company: 'CV Sinang Permata',
     location: 'Megamendung, Bogor, Indonesia',
-    desc: 'Converted Figma designs into HTML and learned how a real team uses Git and GitLab. I improved my CSS and responsive design skills, helped lead part of the team, and completed the internship with a certificate.',
+    desc: 'Converted Figma designs into HTML, learned Git and GitLab workflows, and picked up real project-timing discipline. Sharpened CSS and responsive design skills. This internship is where the passion for coding actually clicked, also led part of the team and earned a completion certificate.',
     stack: 'HTML · CSS · Figma · Git',
   },
 ];
@@ -140,7 +140,7 @@ export const education: EducationItem[] = [
     type: 'Bachelor of Science in Computer Science',
     time: '2024 — 2028',
     place: 'Binus Online Learning',
-    info: 'Relevant coursework: Algoritma & Pemrograman, Kalkulus, Pengembangan Perangkat Lunak, Logika, Database Design, Computer Security, Computer Networks.',
+    info: 'Relevant coursework: Algorithm & Programming, Calculus, Object-Oriented Programming, Logic, Database Design, Computer Security, Computer Networks.',
   },
   {
     type: 'Major of Software Engineering',
@@ -152,7 +152,7 @@ export const education: EducationItem[] = [
     type: 'Data Analytics Bootcamp',
     time: 'JUN 2022',
     place: 'RevoU',
-    info: 'Completed a bootcamp covering Big Data Value, Predictive Analytics, Perspective Analytics, and the Data Analytics Cycle, and received the certificate.',
+    info: 'Completed bootcamp in advanced topics such as Big Data Value, Predictive Analytics, Perspective Analytics, Data Analytics Cycle and got the certificate.',
   },
 ];
 
@@ -166,7 +166,7 @@ export const skills: SkillCategory[] = [
 ];
 
 export const notes = [
-  { date: '18.02.25', title: 'Small systems, strong opinions', tag: 'BUILDING', text: 'The best tools I use are not feature-rich. They make one important decision easier.' },
-  { date: '02.01.25', title: 'Notes from a year of shipping', tag: 'REFLECTION', text: 'A few rules that survived the move from tutorials to production: name the failure mode first.' },
-  { date: '11.11.24', title: 'The useful friction of a blank page', tag: 'PROCESS', text: 'Starting with constraints is not a compromise. It is a way to make the work legible.' },
+  { date: '25.08.26', title: 'To Grieve Deeply Is to Have Loved Fully', tag: 'REFLECTION', text: 'The culmination of love is grief, and yet we love, despite the inevitable' },
+  { date: '02.01.25', title: 'In Pursuit of Great We Failed to Do Good', tag: 'REFLECTION', text: 'The pursuit of greatness often leads us astray from what is truly important.' },
+  { date: '05.01.25', title: 'Don\'t cry. You\'re perfect.', tag: 'REFLECTION', text: 'You are enough just as you are.' },
 ];

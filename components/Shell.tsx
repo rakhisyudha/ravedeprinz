@@ -1,103 +1,53 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { TransitionLink } from './TransitionLink';
-import { NavigationContext } from './navigation-context';
 
-const links = [
-  ['/', 'Home'],
-  ['/about', 'About'],
-  ['/work', 'Work'],
-  ['/projects', 'Projects'],
-  ['/notes', 'Notes'],
-  ['/now', 'Now'],
-] as const;
-
-type Router = { push: (href: string) => void };
+const links = [['/', 'Home'], ['/about', 'About'], ['/work', 'Work'], ['/projects', 'Projects'], ['/notes', 'Notes'], ['/now', 'Now']] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuPreview, setMenuPreview] = useState('SELECT');
+  const current = links.find(([href]) => href === path)?.[1] ?? 'Home';
+
+  useEffect(() => { setOpen(false); window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }); }, [path]);
 
   useEffect(() => {
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setIsTransitioning(false);
-  }, [path]);
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
 
   useEffect(() => {
-    function closeMenu(event: PointerEvent) {
-      if (menuOpen && !menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
-    }
+    function handleScroll() { setScrolled(window.scrollY > 24); }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-    document.addEventListener('pointerdown', closeMenu);
-    return () => document.removeEventListener('pointerdown', closeMenu);
-  }, [menuOpen]);
+  return <>
+    <header className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
+      <TransitionLink href="/" className="site-mark" aria-label="ravedeprinz home"><strong>r</strong>avedeprinz_</TransitionLink>
+      <div className="header-state"><span>{current}</span></div>
+      <motion.button type="button" className={`menu-trigger ${open ? 'is-open' : ''}`} aria-expanded={open} onClick={() => setOpen((value) => !value)} whileTap={{ scale: 0.94 }} transition={{ duration: .18 }}>
+        <motion.span className="bracket bracket-left" animate={{ width: open ? 9 : 14 }} transition={{ duration: .25, ease: [0.65, 0, 0.35, 1] }}>[</motion.span>
+        <span className="menu-trigger-label"><AnimatePresence mode="wait" initial={false}><motion.span key={open ? 'close' : 'index'} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: .2, ease: 'easeOut' }}>{open ? 'CLOSE' : 'INDEX'}</motion.span></AnimatePresence></span>
+        <motion.span className="bracket bracket-right" animate={{ width: open ? 9 : 14 }} transition={{ duration: .25, ease: [0.65, 0, 0.35, 1] }}>]</motion.span>
+      </motion.button>
+    </header>
 
-  function startTransition(href: string, router: Router) {
-    if (isTransitioning) return;
-    setMenuOpen(false);
-    setIsTransitioning(true);
-    window.setTimeout(() => router.push(href), 500);
-  }
+    <AnimatePresence>
+       {open && <motion.div className="menu-scene" initial={{ clipPath: 'polygon(0 0, 0 0, 0 100%, 0 100%)' }} animate={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }} exit={{ clipPath: 'polygon(100% 0, 100% 0, 100% 100%, 100% 100%)' }} transition={{ duration: .48, ease: [0.76, 0, 0.24, 1] }}>
+         <span className="menu-preview" aria-hidden="true">{menuPreview}</span>
+         <motion.button type="button" className="scene-close touch-target" onClick={() => setOpen(false)} whileHover={{ x: 4 }} whileTap={{ scale: .94 }} transition={{ duration: .15 }}><span>[</span> CLOSE <span>]</span></motion.button>
+         <nav aria-label="Primary navigation">{links.map(([href, label], index) => <motion.div key={href} initial={{ opacity: 0, x: index % 2 ? 60 : -60 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .08 + index * .045 }}><TransitionLink href={href} onMouseEnter={() => setMenuPreview(label.toUpperCase())} onFocus={() => setMenuPreview(label.toUpperCase())} className={`scene-link ${path === href ? 'active' : ''}`}><span>0{index + 1}</span>{label}</TransitionLink></motion.div>)}</nav>
+        <p className="scene-note">A personal archive of work, experiments, observations, and the things currently taking up space in my head.</p>
+      </motion.div>}
+    </AnimatePresence>
 
-  return (
-    <NavigationContext.Provider value={{ startTransition }}>
-      <AnimatePresence>
-        {isTransitioning && (
-          <motion.div
-            className="pointer-events-none fixed inset-0 z-50 bg-[#00BBFA]"
-            initial={{ clipPath: 'circle(0% at 50% 100%)' }}
-            animate={{ clipPath: 'circle(150% at 50% 100%)' }}
-            exit={{ clipPath: 'circle(0% at 50% 0%)' }}
-            transition={{ duration: 0.5, ease: [0.76, 0, 0.24, 1] }}
-          />
-        )}
-      </AnimatePresence>
-
-      <header className="fixed top-0 z-40 w-full border-b border-cyan/20 bg-[#00183E]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 lg:px-10">
-          <TransitionLink href="/" className="logo display shrink-0 text-2xl font-bold tracking-wider" aria-label="ravedeprinz home">
-            <span className="text-[#00BBFA]">r</span>avedeprinz<span className="text-[#FFC54A]">_</span>
-          </TransitionLink>
-
-          <nav className="hidden items-center gap-7 md:flex" aria-label="Primary navigation">
-            {links.map(([href, label]) => (
-              <TransitionLink key={href} href={href} className={`text-sm font-semibold tracking-wide transition-colors hover:text-[#79D7FD] ${path === href ? 'text-[#00BBFA]' : 'text-[#b4d4e2]'}`}>
-                {label}
-              </TransitionLink>
-            ))}
-          </nav>
-
-          <div ref={menuRef} className="relative md:hidden">
-            <button type="button" className="cut-small border border-[#00BBFA]/60 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#79D7FD]" aria-expanded={menuOpen} aria-controls="mobile-navigation" onClick={() => setMenuOpen((open) => !open)}>
-              Menu <motion.span animate={{ rotate: menuOpen ? 45 : 0 }} className="ml-2 inline-block text-[#FFC54A]">+</motion.span>
-            </button>
-            <AnimatePresence>
-              {menuOpen && (
-                <motion.nav id="mobile-navigation" className="panel cut-small absolute right-0 top-12 w-52 origin-top-right p-2" initial={{ opacity: 0, scale: 0.9, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -8 }} transition={{ duration: 0.16, ease: 'easeOut' }} aria-label="Mobile navigation">
-                  {links.map(([href, label]) => (
-                    <TransitionLink key={href} href={href} onClick={() => setMenuOpen(false)} className={`menu-link lift block cut-small px-4 py-3 text-sm font-semibold ${path === href ? 'text-[#00BBFA]' : 'text-[#b4d4e2]'}`}>
-                      {label}
-                    </TransitionLink>
-                  ))}
-                </motion.nav>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </header>
-
-      {children}
-
-      <footer className="mx-auto flex max-w-7xl justify-between border-t border-cyan/20 px-5 py-8 text-[10px] text-[#79a3b7] lg:px-10">
-        <span className="mono">RAVEDEPRINZ // 2024 TO 2025</span>
-        <span className="mono">BUILT WITH INTENT <b className="text-[#FFC54A]">◆</b></span>
-      </footer>
-    </NavigationContext.Provider>
-  );
+     <AnimatePresence mode="wait"><motion.div key={path} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} transition={{ duration: .32, ease: 'easeOut' }}>{children}</motion.div></AnimatePresence>
+    <footer className="site-footer"><span>ravedepr1nz</span><span>PERSONAL ARCHIVE <b>◆</b></span></footer>
+  </>;
 }

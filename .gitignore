@@ -9,6 +9,39 @@ out/
 *.log
 logs/
 
+# Local scratch and spam folders
+spam/
+Spam/
+spam-folder/
+dummy/
+Dummy/
+tmp/
+temp/
+scratch/
+dump/
+*.tmp
+*.bak
+*.old
+
+# Confidential and secret files
+.env*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+secret/
+private/
+credentials/
+credentials.*
+*secret*
+*password*
+*token*
+*apikey*
+*api-key*
+
 
 # Test and coverage output
 coverage/
@@ -16,13 +49,6 @@ coverage/
 
 # Deployment output
 .vercel/
-
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Local build brief
 p3r-portfolio-prompt.md

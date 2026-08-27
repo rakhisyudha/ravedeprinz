@@ -1,42 +1,32 @@
+'use client';
+
+import { motion } from 'motion/react';
 import { Page } from '../../components/Page';
 
+const now = {
+  updated: '27 AUG 2026',
+  current: {
+    label: 'CURRENTLY BUILDING',
+    title: 'A CRM.',
+    description: "I'm working on the backend side of a CRM at Radius Data Solusi. Most of my attention is currently going into Go, Gin, APIs, authentication, database structure, and keeping the system understandable as it grows.",
+  },
+  attention: [
+    { number: '01', label: 'LEARNING', title: 'gRPC', note: "Trying to understand the trade-offs instead of treating it as just 'REST, but faster.'" },
+    { number: '02', label: 'READING', title: 'Designing Data-Intensive Applications', note: 'Slowly. Usually with more tabs open than necessary.' },
+    { number: '03', label: 'THINKING ABOUT', title: 'How much complexity can a good name remove?', note: 'Naming things is still harder than it should be.' },
+  ],
+  recently: [
+    ['27 AUG', 'Working on the backend side of a CRM.'],
+    ['22 AUG', 'Refactored an API surface that had outgrown its first assumptions.'],
+    ['18 AUG', 'Started learning more seriously about gRPC.'],
+  ],
+};
+
 export default function Now() {
-  return (
-    <Page eyebrow="LIVE READOUT / 006" title="NOW" intro="A short look at what has my attention at the moment.">
-      <div className="panel cut grid-bg relative overflow-hidden p-5 sm:p-12">
-        <div className="absolute right-5 top-5 h-3 w-3 animate-pulse bg-[#FFC54A] sm:right-8 sm:top-8" />
-        <div className="grid gap-10 lg:grid-cols-[1fr_250px] lg:gap-12">
-          <div>
-            <p className="eyebrow mb-6">PRIMARY OBJECTIVE / 01</p>
-            <h2 className="display max-w-2xl break-words text-5xl font-bold leading-[0.88] sm:text-8xl">
-              BUILDING<br />
-              <span className="text-[#00BBFA]">A CRM PLATFORM</span>
-            </h2>
-            <p className="mt-8 max-w-xl text-base leading-8 text-[#b4d0dc]">
-              I am working as a backend intern at Radius Data Solusi. I am helping build a CRM in Go with Gin while learning more about API design, authentication, and database structure. The goal is simple software that stays dependable as it grows.
-            </p>
-          </div>
-          <div className="border-t border-[#00BBFA]/40 pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-            <p className="eyebrow">SYSTEM STATUS</p>
-            <dl className="mono mt-7 space-y-6 text-xs">
-              <div>
-                <dt className="text-[#7099ac]">FOCUS</dt>
-                <dd className="mt-1 text-[#e8f7ff]">SHIP THE CRM</dd>
-              </div>
-              <div>
-                <dt className="text-[#7099ac]">LEARNING</dt>
-                <dd className="mt-1 text-[#e8f7ff]">GO · GIN · DOCKER</dd>
-              </div>
-              <div>
-                <dt className="text-[#7099ac]">ENERGY</dt>
-                <dd className="mt-1 text-[#FFC54A]">███████░░░ 72%</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-        <div className="gold-line mt-10 sm:mt-14" />
-        <p className="mono mt-5 break-words text-[10px] tracking-wider text-[#79D7FD]">LAST UPDATED // 26.08.2026 · 09:42 UTC</p>
-      </div>
-    </Page>
-  );
+  return <Page index="NOW / 006" title="NOW" intro="This page changes. So does everything on it.">
+    <header className="now-intro"><span className="eyebrow">NOW</span><span className="now-updated">{now.updated}</span><p>This page changes.<br />So does everything on it.</p></header>
+    <section className="now-current"><div className="now-current-label"><span className="eyebrow">{now.current.label}</span><span className="now-current-number">[01]</span></div><h2 className="display">A<br /><span>CRM.</span></h2><p>{now.current.description}</p></section>
+    <section className="now-attention"><div className="now-section-heading"><span className="eyebrow">WHAT HAS MY ATTENTION</span><span className="stripe" /></div>{now.attention.map((item, index) => <motion.article key={item.number} className={`attention-item attention-item-${index}`} initial={{ opacity: 0, x: -18 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: .25 }} transition={{ delay: index * .1 }}><span className="attention-number">{item.number}</span><div><p className="eyebrow">{item.label}</p><h3>{item.title}</h3><p>{item.note}</p></div></motion.article>)}</section>
+    <section className="now-recent"><div className="now-section-heading"><span className="eyebrow">RECENTLY</span><span className="stripe" /></div>{now.recently.map(([date, text]) => <p key={date}><span>{date}</span><i />{text}</p>)}</section>
+  </Page>;
 }

@@ -16,8 +16,16 @@ export function TransitionLink({ onClick, ...props }: TransitionLinkProps) {
     if (event.defaultPrevented || typeof props.href !== 'string' || props.href === window.location.pathname) return;
 
     event.preventDefault();
-    navigation?.startTransition(String(props.href), router);
+    if (navigation) {
+      navigation.startTransition(String(props.href), router);
+    } else {
+      router.push(String(props.href));
+    }
   }
 
-  return <Link {...props} onClick={handleClick} />;
+  const className = typeof props.className === 'string'
+    ? `touch-target ${props.className}`
+    : props.className;
+
+  return <Link {...props} className={className} onClick={handleClick} />;
 }

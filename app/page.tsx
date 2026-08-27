@@ -1,44 +1,40 @@
 import { TransitionLink } from '../components/TransitionLink';
 import { HudPanel } from '../components/HudPanel';
 
-const tiles = [
-  ['/about', 'ABOUT', 'The person behind the systems.'],
-  ['/work', 'WORK', 'Selected roles & impact.'],
-  ['/projects', 'PROJECTS', 'Experiments, shipped or not.'],
-  ['/notes', 'NOTES', 'Thoughts in progress.'],
-  ['/now', 'NOW', 'Current status readout.'],
+const links = [
+  ['/about', 'About', 'The person behind the systems.'],
+  ['/work', 'Work', 'Roles, teams, and shipped software.'],
+  ['/projects', 'Projects', 'Things built while learning.'],
+  ['/notes', 'Notes', 'Short thoughts from the workbench.'],
+  ['/now', 'Now', 'What currently has my attention.'],
 ] as const;
 
 export default function Home() {
-  return (
-    <main className="grid-bg relative min-h-screen overflow-hidden px-5 pb-20 pt-32 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid min-h-[53vh] items-center gap-12 lg:grid-cols-[1.15fr_.85fr]">
-          <div>
-            <p className="eyebrow mb-7"><span className="slash">//</span> PERSONAL PORTFOLIO / 001</p>
-            <h1 className="display text-[clamp(4rem,10vw,8.5rem)] font-black">EVERY<br /><span className="text-[#00BBFA]">SYSTEM</span><br />HAS A STORY<span className="text-[#FFC54A]">.</span></h1>
-            <p className="mt-8 max-w-md text-base leading-7 text-[#a8c6d3]">I build full-stack products with a backend focus. I like to understand the shape of a problem before I start writing code.</p>
-            <div className="mt-8 lg:hidden"><HudPanel /></div>
-            <TransitionLink href="/projects" className="cut-small mt-8 inline-flex bg-[#FFC54A] px-7 py-4 font-bold tracking-widest text-[#001736] transition hover:bg-[#79D7FD]">ENTER THE ARCHIVE <span className="ml-5">↗</span></TransitionLink>
-          </div>
-
-          <div className="relative hidden min-h-[510px] lg:block">
-            <div className="absolute right-7 top-8 h-[440px] w-[370px] border border-[#00BBFA]/35 bg-[#00183E]" />
-            <div className="absolute right-0 top-20 h-[440px] w-[370px] border border-[#79D7FD]/25 [clip-path:polygon(15%_0,100%_0,100%_85%,85%_100%,0_100%,0_15%)]" />
-            <div className="relative ml-auto w-[370px]"><HudPanel /></div>
-          </div>
-        </div>
-
-        <div className="cyan-line mb-7" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {tiles.map(([href, title, desc]) => (
-            <TransitionLink href={href} key={href} className="panel cut-small lift group min-h-[145px] p-5">
-              <h2 className="display mt-8 text-3xl font-bold group-hover:text-[#79D7FD]">{title}</h2>
-              <p className="mt-2 text-xs leading-5 text-[#86adbe]">{desc}</p>
-            </TransitionLink>
-          ))}
-        </div>
+  return <main className="home-page">
+    <div className="home-layout">
+      <section className="home-copy">
+        <p className="eyebrow"><span className="slash">//</span> PERSONAL ARCHIVE / 001</p>
+        <h1 className="display">I DON&apos;T<br /><span className="accent-word">GUESS.</span>I DEBUG<span className="accent-dot">.</span></h1>
+        <div className="headline-meta"><span>BACKEND / SYSTEMS / GO</span><i /></div>
+        <p className="lede">I’m Rakhis de Yudha. I study computer science at Binus Online Learning and spend most of my building time around Go, PostgreSQL, React, Docker, and the questions underneath a product’s interface.</p>
+        <TransitionLink href="/projects" className="home-cta">ENTER THE ARCHIVE <b>↗</b></TransitionLink>
+      </section>
+      <aside className="profile-column">
+        <div className="hud-only"><HudPanel /></div>
+        <div className="quick-links"><TransitionLink href="/now"><span>06</span> NOW</TransitionLink><TransitionLink href="/notes"><span>05</span> NOTES</TransitionLink></div>
+      </aside>
+    </div>
+    <nav className="home-rule" aria-label="Explore the archive">
+      <p className="home-rule-label">ARCHIVE INDEX <span>// SELECT A RECORD</span></p>
+      <div className="home-records">
+        {links.map(([href, label, description], index) => (
+          <TransitionLink href={href} key={href} className={`home-record home-record-${index}`}>
+            <span className="home-record-number">0{index + 2}</span>
+            <span className="home-record-copy"><b>{label}</b><small>{description}</small></span>
+            <span className="home-record-arrow">↗</span>
+          </TransitionLink>
+        ))}
       </div>
-    </main>
-  );
+    </nav>
+  </main>;
 }

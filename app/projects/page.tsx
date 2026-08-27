@@ -1,6 +1,6 @@
+import Image, { StaticImageData } from 'next/image';
 import { Page } from '../../components/Page';
 import { projects } from '../../data/content';
-import Image from 'next/image';
 import portfolioImage from '../../img/Projects/portfolio.png';
 import pakisImage from '../../img/Projects/pakis.png';
 import outboundImage from '../../img/Projects/outbound.png';
@@ -10,60 +10,33 @@ import quizImage from '../../img/Projects/quiz-portrait.png';
 import weddingImage from '../../img/Projects/wedding.png';
 import marketImage from '../../img/Projects/market.png';
 
-const projectImages = {
-  portfolio: portfolioImage,
-  pakis: pakisImage,
-  outbound: outboundImage,
-  auction: auctionImage,
-  convert: convertImage,
-  'quiz-portrait': quizImage,
-  wedding: weddingImage,
-  market: marketImage,
-} as const;
+const projectImages: Record<string, StaticImageData> = { portfolio: portfolioImage, pakis: pakisImage, outbound: outboundImage, auction: auctionImage, convert: convertImage, 'quiz-portrait': quizImage, wedding: weddingImage, market: marketImage };
+const statusClass = { FINISHED: 'status-shipped', 'IN PROGRESS': 'status-in-progress', SHELVED: 'status' } as const;
+const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
 
-const badge = {
-  gold: 'bg-[#FFC54A] text-[#001736]',
-  cyan: 'bg-[#00BBFA] text-[#001736]',
-  muted: 'bg-[#426178] text-[#b8ced8]',
-} as const;
+function ProjectFrame({ project, index }: { project: (typeof projects)[number]; index: number }) {
+  if (!project.image) return null;
+  const deployed = project.title !== 'Web Auction';
+  const stickerKind = stickerKinds[index % stickerKinds.length];
+  return <div className="project-media">
+    <div className={`project-frame project-card-${index % 4}`}>
+      <div className="project-chrome" aria-hidden="true"><i /><i /><i /></div>
+      <div className="project-image"><Image src={projectImages[project.image]} alt={`${project.title} preview`} fill sizes="(max-width: 900px) 90vw, 520px" /></div>
+    </div>
+    <span className={`project-sticker status sticker-${stickerKind} sticker-status-slot ${statusClass[project.type]}`}>{project.type}</span>
+    <span className={`deploy-sticker deploy-${stickerKinds[(index + 1) % stickerKinds.length]} deploy-slot ${deployed ? '' : 'deploy-sticker-pending'}`}>{deployed ? 'DEPLOYED' : 'NOT DEPLOYED'}</span>
+    <span className={`project-index index-slot index-style-${index % 4}`}>0{index + 1} / {project.year}</span>
+  </div>;
+}
 
 export default function Projects() {
-  return (
-    <Page eyebrow="BUILD LOG / 004" title="PROJECTS" intro="A collection of things I made while learning how to make better software.">
-      <div className="grid gap-5 md:grid-cols-2">
-        {projects.map((p, i) => (
-          <article className="panel cut lift relative flex min-h-[290px] min-w-0 flex-col p-5 sm:p-7" key={p.title}>
-            <span className={`absolute right-2 top-2 z-20 max-w-[calc(100%-2rem)] px-3 py-2 text-[9px] font-bold tracking-widest sm:px-4 sm:text-[10px] ${badge[p.accent]}`}>{p.type}</span>
-            <span className="mono text-xs text-[#79D7FD]">0{i + 1} / {p.year}</span>
-            {p.image && (
-              <div className="browser-frame relative mt-6 aspect-video overflow-hidden">
-                <div className="browser-bar absolute inset-x-0 top-0 z-10 flex h-7 items-center gap-1.5 border-b border-[#00BBFA]/50 bg-[#00183E] px-3">
-                  <span className="h-2 w-2 rounded-full bg-[#FFC54A]" />
-                  <span className="h-2 w-2 rounded-full bg-[#79D7FD]" />
-                  <span className="h-2 w-2 rounded-full bg-[#00BBFA]" />
-                </div>
-                <Image src={projectImages[p.image as keyof typeof projectImages]} alt={`${p.title} project preview`} fill className="object-cover pt-7 transition duration-300 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 50vw" />
-                <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#001736]/65 via-transparent to-transparent" />
-              </div>
-            )}
-            <h2 className="display mt-6 break-words text-4xl font-bold sm:mt-7">{p.title}</h2>
-            <p className="mt-4 max-w-md text-sm leading-7 text-[#a8c6d3]">{p.desc}</p>
-            <p className="mono mt-6 text-[10px] tracking-wide text-[#79D7FD]">{p.stack}</p>
-            <div className="mt-auto flex items-center gap-5 pt-6">
-              {p.link && (
-                <a href={p.link} target="_blank" rel="noreferrer" className="text-xs font-bold uppercase tracking-widest text-[#00BBFA] hover:text-[#79D7FD]">
-                  Live ↗
-                </a>
-              )}
-              {p.github && (
-                <a href={p.github} target="_blank" rel="noreferrer" className="text-xs font-bold uppercase tracking-widest text-[#a8c6d3] hover:text-[#79D7FD]">
-                  Source ↗
-                </a>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-    </Page>
-  );
+  return <Page index="BUILD LOG / 004" title="PROJECTS" intro="Things made while learning how to make better software. Finished, experimental, paused, and still worth remembering.">
+    <section className="record-list">
+      {projects.map((project, index) => <article className="record project-record lift" key={project.title}>
+        <span className="record-number">0{index + 1}<small>{project.year}</small></span>
+        <div className="project-content"><ProjectFrame project={project} index={index} /><h2>{project.title}</h2><p>{project.desc}</p><p className="metadata">{project.stack}</p><div className="project-links">{project.link && <a href={project.link} target="_blank" rel="noreferrer">Live ↗</a>}{project.github && <a href={project.github} target="_blank" rel="noreferrer">Source ↗</a>}</div></div>
+        <aside><span>ARCHIVE NOTE</span><p>{project.type === 'SHELVED' ? 'Not finished. Still useful.' : 'A record of making, testing, and learning.'}</p></aside>
+      </article>)}
+    </section>
+  </Page>;
 }

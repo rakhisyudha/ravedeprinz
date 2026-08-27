@@ -2,33 +2,7 @@ import { Page } from '../../components/Page';
 import { notes } from '../../data/content';
 
 export default function Notes() {
-  return (
-    <Page
-      eyebrow="TRANSMISSIONS / 005"
-      title="NOTES"
-      intro="Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose."
-    >
-      <div className="max-w-4xl">
-        {notes.map((note) => (
-          <article
-            className="group grid gap-5 border-t border-[#79D7FD]/20 py-8 md:grid-cols-[115px_1fr_100px]"
-            key={note.title}
-          >
-            <span className="mono text-xs text-[#79D7FD]">{note.date}</span>
-
-            <div>
-              <h2 className="display text-4xl font-bold transition group-hover:text-[#00BBFA]">
-                {note.title}
-              </h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-[#9abaca]">
-                {note.text}
-              </p>
-            </div>
-
-            <span className="eyebrow text-right">{note.tag}</span>
-          </article>
-        ))}
-      </div>
-    </Page>
-  );
+  return <Page index="TRANSMISSIONS / 005" title="NOTES" intro="Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose.">
+    <section className="notes-list">{notes.map((note) => <article className="note lift" key={note.title}><span className="note-date">{note.date}<small>READ / 04 MIN</small></span><div><p className="eyebrow">{note.tag}</p><h2>{note.title}</h2><p>{note.text}</p></div><span className="note-arrow">↗</span></article>)}</section>
+  </Page>;
 }
