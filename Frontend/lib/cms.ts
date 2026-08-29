@@ -5,7 +5,8 @@ const API = process.env.CMS_API_URL ?? 'http://localhost:4000';
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${API}${path}`, { next: { revalidate: 300 } });
+    // No store: the CMS (Supabase) is the source of truth, so saves appear immediately.
+    const res = await fetch(`${API}${path}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

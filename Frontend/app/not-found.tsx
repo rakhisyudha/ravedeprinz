@@ -15,7 +15,7 @@ export default function NotFound() {
           <p className="auth-denied-hint">The page you’re looking for doesn’t exist here. Return to the archive and start from the index.</p>
         </div>
 
-        <Link href="/" className="auth-denied-close touch-target" aria-label="Back to home">
+        <Link href="/" className="auth-denied-close touch-target" style={{ marginTop: '28px' }} aria-label="Back to home">
           <span className="bracket">[</span> DISMISS <span className="bracket">]</span>
         </Link>
 

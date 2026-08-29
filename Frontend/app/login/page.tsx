@@ -26,10 +26,9 @@ function LoginForm() {
   // show DENIED on top of everything, then scrub the query param
   useEffect(() => {
     if (blocked) {
-      const t = setTimeout(() => router.replace('/login'), 80);
-      return () => clearTimeout(t);
+      window.history.replaceState({}, '', '/login');
     }
-  }, [blocked, router]);
+  }, [blocked]);
 
   async function oauth() {
     const supabase = createClient();
