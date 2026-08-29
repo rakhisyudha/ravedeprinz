@@ -9,6 +9,7 @@ serve({
   port,
   async fetch(request) {
     const url = new URL(request.url);
+    console.log(`[cms] ${request.method} ${url.pathname}`);
 
     if (request.method === 'OPTIONS') {
       return json({}, 204);
