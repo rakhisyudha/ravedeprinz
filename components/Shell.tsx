@@ -7,7 +7,7 @@ import { TransitionLink } from './TransitionLink';
 
 const links = [['/', 'Home'], ['/about', 'About'], ['/work', 'Work'], ['/projects', 'Projects'], ['/notes', 'Notes'], ['/now', 'Now']] as const;
 
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, footerName = 'ravedepr1nz', footerLabel = 'PERSONAL ARCHIVE' }: { children: React.ReactNode; footerName?: string; footerLabel?: string }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -26,6 +26,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Admin and auth routes use their own dedicated shell.
+  if (path.startsWith('/admin') || path === '/login') {
+    return <>{children}</>;
+  }
 
   return <>
     <header className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
@@ -48,6 +53,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
     </AnimatePresence>
 
      <AnimatePresence mode="wait"><motion.div key={path} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} transition={{ duration: .32, ease: 'easeOut' }}>{children}</motion.div></AnimatePresence>
-    <footer className="site-footer"><span>ravedepr1nz</span><span>PERSONAL ARCHIVE <b>◆</b></span></footer>
+    <footer className="site-footer"><span>{footerName}</span><span>{footerLabel} <b>◆</b></span></footer>
   </>;
 }
