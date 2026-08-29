@@ -103,14 +103,21 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
       const { content, navigation } = body as { content?: Record<string, unknown>; navigation?: Array<Record<string, unknown> & { id?: string; page_key: string }> };
       if (content) {
         const { data: existing } = await adminClient.from('home_content').select('id').limit(1).single();
-        if (existing) await adminClient.from('home_content').update({ ...content, updated_at: new Date().toISOString() }).eq('id', existing.id);
-        else await adminClient.from('home_content').insert({ ...content });
+        if (existing) {
+          const res = await adminClient.from('home_content').update({ ...content, updated_at: new Date().toISOString() }).eq('id', existing.id);
+          if (res.error) return json({ error: `home_content: ${res.error.message}` }, 400);
+        } else {
+          const res = await adminClient.from('home_content').insert({ ...content });
+          if (res.error) return json({ error: `home_content: ${res.error.message}` }, 400);
+        }
       }
       if (navigation) {
         for (const item of navigation) {
           const { id, page_key, ...fields } = item;
-          if (id) await adminClient.from('home_navigation').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id);
-          else if (page_key) await adminClient.from('home_navigation').upsert({ ...fields, page_key });
+          let res;
+          if (id) res = await adminClient.from('home_navigation').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id);
+          else if (page_key) res = await adminClient.from('home_navigation').upsert({ ...fields, page_key });
+          if (res?.error) return json({ error: `home_navigation: ${res.error.message}` }, 400);
         }
       }
       await logAudit(admin, 'UPDATE', 'home');

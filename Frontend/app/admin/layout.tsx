@@ -1,17 +1,7 @@
-import Link from 'next/link';
 import { createClient } from '../../lib/supabase/server';
-import AdminSignOut from '../../components/admin/AdminSignOut';
-
-const adminNav = [
-  ['/admin', 'DASHBOARD'],
-  ['/admin/home', 'HOME'],
-  ['/admin/about', 'ABOUT'],
-  ['/admin/work', 'WORK'],
-  ['/admin/projects', 'PROJECTS'],
-  ['/admin/notes', 'NOTES'],
-  ['/admin/now', 'NOW'],
-  ['/admin/users', 'USERS'],
-] as const;
+import AdminUserMenu from '../../components/admin/AdminUserMenu';
+import AdminNav from '../../components/admin/AdminNav';
+import AdminWelcome from '../../components/admin/AdminWelcome';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -21,18 +11,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <main className="admin-page">
       <div className="admin-shell">
         <header className="admin-header">
-          <div>
-            <p className="eyebrow">// CONTENT CONTROL</p>
-            <h1 className="display">CMS</h1>
+          <div className="admin-header-top">
+            <div>
+              <p className="eyebrow">// CONTENT CONTROL</p>
+              <h1 className="display">CMS</h1>
+            </div>
+            <AdminUserMenu email={user?.email} />
           </div>
-          <div className="admin-header-right">
-            <span className="admin-user">{user?.email}</span>
-            <AdminSignOut />
-          </div>
+          <AdminWelcome />
         </header>
-        <nav className="admin-nav" aria-label="CMS navigation">
-          {adminNav.map(([href, label]) => <Link key={href} href={href} className="admin-nav-link touch-target">{label}</Link>)}
-        </nav>
+        <AdminNav />
         {children}
       </div>
     </main>
