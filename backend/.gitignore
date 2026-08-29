@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Bun
+bun.lock
+bun.lockb
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Supabase local
+supabase/.temp/

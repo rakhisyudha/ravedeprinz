@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 type Supabase = SupabaseClient;
 
+const EMPTY_UUID = '00000000-0000-0000-0000-000000000000';
+
 // ---------------------------------------------------------------------------
 // Public content (published only)
 // ---------------------------------------------------------------------------
@@ -42,15 +44,19 @@ export async function publicContent(request: Request, url: URL): Promise<Respons
     }
 
     case '/api/content/projects': {
-      const { data } = await adminClient.from('projects')
+      const { data } = await adminClient
+        .from('projects')
         .select('*')
-        .eq('published', true).eq('visible', true)
-        .order('sort_order').order('year', { ascending: false });
+        .eq('published', true)
+        .eq('visible', true)
+        .order('sort_order')
+        .order('year', { ascending: false });
       return json({ projects: data ?? [] });
     }
 
     case '/api/content/notes': {
-      const { data } = await adminClient.from('notes')
+      const { data } = await adminClient
+        .from('notes')
         .select('*')
         .eq('published', true)
         .order('published_at', { ascending: false });
@@ -107,7 +113,7 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
           else if (page_key) await adminClient.from('home_navigation').upsert({ ...fields, page_key });
         }
       }
-      await logAudit(admin, 'UPDATE', 'home', undefined, undefined, { content, navigation });
+      await logAudit(admin, 'UPDATE', 'home');
       return json({ ok: true });
     }
   }
@@ -129,8 +135,8 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
         else await adminClient.from('about_content').insert({ ...content });
       }
       if (skills) {
-        await adminClient.from('skills').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await adminClient.from('skills').insert(skills.map((s) => { const { id, ...rest } = s; return rest; }));
+        await adminClient.from('skills').delete().neq('id', EMPTY_UUID);
+        await adminClient.from('skills').insert(skills.map(({ id, ...rest }) => rest));
       }
       await logAudit(admin, 'UPDATE', 'about');
       return json({ ok: true });
@@ -149,11 +155,11 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
     if (method === 'PUT') {
       const { work, education } = await request.json() as { work?: Array<Record<string, unknown>>; education?: Array<Record<string, unknown>> };
       if (work) {
-        await adminClient.from('work_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await adminClient.from('work_entries').delete().neq('id', EMPTY_UUID);
         await adminClient.from('work_entries').insert(work);
       }
       if (education) {
-        await adminClient.from('education_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await adminClient.from('education_entries').delete().neq('id', EMPTY_UUID);
         await adminClient.from('education_entries').insert(education);
       }
       await logAudit(admin, 'UPDATE', 'work');
@@ -202,7 +208,7 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
       const published = body.published ?? false;
       const { data, error } = await adminClient.from('notes').insert({ ...body, published, published_at: published ? new Date().toISOString() : null }).select().single();
       if (error) return json({ error: error.message }, 400);
-      await logAudit(admin, published ? 'PUBLISH' : 'CREATE', 'note', data.id, undefined, body);
+      await logAudit(admin, published ? 'PUBLISH' : 'CREATE', 'note', data.id);
       return json(data);
     }
     if (id && (method === 'PUT' || method === 'PATCH')) {
@@ -212,7 +218,7 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
       if (typeof published === 'boolean') update.published_at = published ? new Date().toISOString() : null;
       const { data, error } = await adminClient.from('notes').update(update).eq('id', id).select().single();
       if (error) return json({ error: error.message }, 400);
-      await logAudit(admin, published ? 'PUBLISH' : 'UPDATE', 'note', id, undefined, body);
+      await logAudit(admin, published ? 'PUBLISH' : 'UPDATE', 'note', id);
       return json(data);
     }
     if (id && method === 'DELETE') {
@@ -234,7 +240,6 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
       ]);
       return json({ current: current.data ?? null, attention: attention.data ?? [], history: history.data ?? [] });
     }
-    // PUT /api/admin/now/current appends history and updates the singleton.
     if (segment === 'current' && method === 'PUT') {
       const { current, attention, historyItem } = await request.json() as { current?: Record<string, unknown>; attention?: Array<Record<string, unknown> & { id?: string }>; historyItem?: { date_label?: string; text?: string } };
       const { data: existing } = await adminClient.from('now_current').select('id').limit(1).single();
@@ -244,13 +249,13 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
         else await adminClient.from('now_current').insert(payload);
       }
       if (attention) {
-        await adminClient.from('now_attention').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await adminClient.from('now_attention').insert(attention.map((a) => { const { id, ...rest } = a; return rest; }));
+        await adminClient.from('now_attention').delete().neq('id', EMPTY_UUID);
+        await adminClient.from('now_attention').insert(attention.map(({ id, ...rest }) => rest));
       }
       if (historyItem?.text) {
         await adminClient.from('now_history').insert({ date_label: historyItem.date_label ?? 'NOW', text: historyItem.text, source_type: 'UPDATE' });
       }
-      await logAudit(admin, 'UPDATE', 'now', undefined, undefined, { current, historyItem });
+      await logAudit(admin, 'UPDATE', 'now');
       return json({ ok: true });
     }
     if (segment === 'history' && method === 'GET') {

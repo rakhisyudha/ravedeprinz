@@ -14,7 +14,6 @@ export async function usersApi(request: Request, url: URL, admin: { id: string; 
     return json({ users: data ?? [] });
   }
 
-  // Register a new admin email + password.
   if (url.pathname === '/api/admin/users' && method === 'POST') {
     const { email, password, role = 'editor' } = await request.json() as { email?: string; password?: string; role?: string };
     if (!email || !password) return json({ error: 'email and password are required' }, 400);
@@ -22,7 +21,6 @@ export async function usersApi(request: Request, url: URL, admin: { id: string; 
     const normalized = String(email).trim().toLowerCase();
     const { data: existing } = await adminClient.from('admin_users').select('id, user_id').eq('email', normalized).maybeSingle();
 
-    // Provision the Supabase auth record for password login.
     const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({ email: normalized, password, email_confirm: true });
     if (authError && !authError.message.includes('already been registered')) return json({ error: authError.message }, 400);
 
@@ -44,7 +42,7 @@ export async function usersApi(request: Request, url: URL, admin: { id: string; 
 
   if (id && url.pathname.startsWith('/api/admin/users/') && method === 'PUT') {
     const { password, role, active } = await request.json() as { password?: string; role?: string; active?: boolean };
-    const { data: existing } = await adminClient.from('admin_users').select('id, user_id, email').eq('id', id).maybeSingle();
+    const { data: existing } = await adminClient.from('admin_users').select('id, user_id').eq('id', id).maybeSingle();
     if (!existing) return json({ error: 'Not found' }, 404);
 
     const update: Record<string, unknown> = {};

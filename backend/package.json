@@ -2,7 +2,16 @@
   "name": "ravedeprinz-cms",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "dev": "bun --watch index.ts",
+    "start": "bun run index.ts",
+    "seed": "bun run seed.ts"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.2"
   }
 }

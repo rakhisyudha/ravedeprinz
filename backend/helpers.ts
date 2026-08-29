@@ -28,7 +28,13 @@ export async function requireAdmin(request: Request): Promise<{ user: AdminUser;
   const { data: userData, error: tokenError } = await adminClient.auth.getUser(token);
   if (tokenError || !userData.user?.email) return { error: json({ error: 'Invalid token' }, 401) };
 
-  const { data: adminRow } = await adminClient.from('admin_users').select('id, email, role').eq('email', userData.user.email).eq('active', true).maybeSingle();
+  const { data: adminRow } = await adminClient
+    .from('admin_users')
+    .select('id, email, role')
+    .eq('email', userData.user.email)
+    .eq('active', true)
+    .maybeSingle();
+
   if (!adminRow) return { error: json({ error: 'Not authorized' }, 403) };
 
   return { user: { id: userData.user.id, email: adminRow.email as string, role: adminRow.role as string } };

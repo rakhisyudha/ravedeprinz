@@ -1,64 +1,7 @@
-# Dependencies
-node_modules/
-
-# Next.js build output
+# Root ignores for local leftovers not covered by Frontend/.gitignore and Backend/.gitignore
 .next/
-out/
-
-# Local development logs
-*.log
-logs/
-
-# Local scratch and spam folders
-spam/
-Spam/
-spam-folder/
+node_modules/
+dev-server.log
 dummy/
 Dummy/
-tmp/
-temp/
-scratch/
-dump/
-*.tmp
-*.bak
-*.old
-
-# Confidential and secret files
-.env*
-!.env.example
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-secrets/
-secret/
-private/
-credentials/
-credentials.*
-*secret*
-*password*
-*token*
-*apikey*
-*api-key*
-
-
-# Test and coverage output
-coverage/
-.nyc_output/
-
-# Deployment output
-.vercel/
-
-# Local build brief
 p3r-portfolio-prompt.md
-
-# OS and editor files
-.DS_Store
-Thumbs.db
-.vscode/
-*.swp
-
-# Local tooling files
-.eslintcache
-*.tsbuildinfo

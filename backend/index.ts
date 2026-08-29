@@ -20,15 +20,15 @@ serve({
     }
 
     // Everything else under /api/admin requires a valid admin bearer token.
-    const result = await requireAdmin(request);
-    if ('error' in result) return result.error;
+    const auth = await requireAdmin(request);
+    if ('error' in auth) return auth.error;
 
     if (url.pathname.startsWith('/api/admin/users')) {
-      return usersApi(request, url, result.user);
+      return usersApi(request, url, auth.user);
     }
 
-    return adminApi(request, url, result.user);
-  },
-});
+    return adminApi(request, url, auth.user);
+  }
+} as Parameters<typeof serve>[0]);
 
 console.log(`[cms] ravedeprinz CMS listening on :${port}`);

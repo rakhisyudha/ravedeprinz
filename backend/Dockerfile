@@ -2,12 +2,13 @@
 FROM oven/bun:1.4-alpine
 WORKDIR /app
 
-COPY backend/package.json ./
+COPY package.json ./
 RUN bun install --production
 
-COPY backend ./backend
-COPY data ./data
+COPY . .
 
 ENV PORT=4000
 EXPOSE 4000
-CMD ["bun", "run", "backend/index.ts"]
+
+# Auto-seed on first start (skips when data already exists), then run the API.
+CMD ["sh", "-c", "bun run seed.ts && bun run index.ts"]

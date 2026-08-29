@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Local development logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Deployment output
+.vercel/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# Local tooling files
+.eslintcache
+*.tsbuildinfo
+next-env.d.ts
+
+# Local scratch
+dummy/
+Dummy/

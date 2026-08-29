@@ -1,27 +1,31 @@
-// Seed current frontend content + admin allowlist into Supabase.
-// Usage: SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... bun run backend/seed.ts
+// Idempotent seed: inserts default content + owner allowlist.
+// If any admin_users row already exists, seeding is skipped so re-runs never
+// duplicate or overwrite content. Runs automatically on container start.
 import { adminClient } from './helpers';
-import {
-  projects as seedProjects,
-  work as seedWork,
-  education as seedEducation,
-  skills as seedSkills,
-  notes as seedNotes,
-} from '../data/content';
+import { projects as seedProjects, work as seedWork, education as seedEducation, skills as seedSkills, notes as seedNotes } from './seed-content';
 
-const OWNER_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'rakhisyuda@gmail.com';
+const OWNER_EMAIL = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase() ?? '';
 
 function slugify(input: string) {
   return input.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+async function alreadySeeded(): Promise<boolean> {
+  const { data } = await adminClient.from('admin_users').select('id').limit(1).maybeSingle();
+  return Boolean(data);
+}
+
 async function main() {
-  console.log('[seed] starting...');
+  console.log('[seed] checking existing data…');
 
-  // site settings
+  if (await alreadySeeded()) {
+    console.log('[seed] data already exists — skipping.');
+    process.exit(0);
+  }
+
+  console.log('[seed] seeding default content…');
+
   await adminClient.from('site_settings').upsert({ id: '00000000-0000-0000-0000-000000000001', site_name: 'ravedeprinz', footer_name: 'ravedepr1nz', footer_label: 'PERSONAL ARCHIVE', hero_tagline: "I DON'T GUESS. I DEBUG." });
-
-  // home content
   await adminClient.from('home_content').upsert({
     id: '00000000-0000-0000-0000-000000000002',
     archive_label: 'PERSONAL ARCHIVE',
@@ -42,7 +46,6 @@ async function main() {
     hud_noise_bottom: 'BUILD / REPEAT / SHIP',
   });
 
-  // home navigation
   const nav = [
     ['about', 'About', 'The person behind the systems.', '02', '/about'],
     ['work', 'Work', 'Roles, teams, and shipped software.', '03', '/work'],
@@ -52,7 +55,6 @@ async function main() {
   ] as const;
   await adminClient.from('home_navigation').upsert(nav.map(([page_key, label, description, display_number, href], i) => ({ page_key, label, description, display_number, href, sort_order: i + 1, visible: true })), { onConflict: 'page_key' });
 
-  // about content
   await adminClient.from('about_content').upsert({
     id: '00000000-0000-0000-0000-000000000003',
     eyebrow: 'IDENTITY / 002',
@@ -66,11 +68,9 @@ async function main() {
   for (const group of seedSkills) for (const skill of group.skills) skillRows.push({ category: group.category, skill_name: skill, sort_order: ++skillOrder, visible: true });
   await adminClient.from('skills').insert(skillRows);
 
-  // work + education
   await adminClient.from('work_entries').insert(seedWork.map((w, i) => ({ role: w.role, company: w.company, location: w.location ?? '', date_label: w.date, description: w.desc, stack: w.stack, company_url: w.companyLink ?? null, sort_order: i + 1, visible: true })));
   await adminClient.from('education_entries').insert(seedEducation.map((e, i) => ({ title: e.type, institution: e.place, date_label: e.time, description: e.info, sort_order: i + 1, visible: true })));
 
-  // projects
   for (const p of seedProjects) {
     await adminClient.from('projects').upsert({
       slug: slugify(p.title),
@@ -87,19 +87,10 @@ async function main() {
     }, { onConflict: 'slug' });
   }
 
-  // notes
   for (const n of seedNotes) {
-    await adminClient.from('notes').upsert({
-      slug: slugify(n.title),
-      title: n.title,
-      body: n.text,
-      tag: n.tag,
-      published: true,
-      published_at: new Date().toISOString(),
-    }, { onConflict: 'slug' });
+    await adminClient.from('notes').upsert({ slug: slugify(n.title), title: n.title, body: n.text, tag: n.tag, published: true, published_at: new Date().toISOString() }, { onConflict: 'slug' });
   }
 
-  // now
   await adminClient.from('now_current').upsert({
     id: '00000000-0000-0000-0000-000000000004',
     updated_label: '27 AUG 2026',
@@ -120,13 +111,10 @@ async function main() {
     { date_label: '18 AUG', text: 'Started learning more seriously about gRPC.', source_type: 'UPDATE' },
   ]);
 
-  // admin allowlist
   const { data: existingAdmin } = await adminClient.from('admin_users').select('id').eq('email', OWNER_EMAIL).maybeSingle();
   if (!existingAdmin) {
     await adminClient.from('admin_users').insert({ email: OWNER_EMAIL, role: 'owner', active: true });
     console.log(`[seed] registered owner email ${OWNER_EMAIL} in allowlist`);
-  } else {
-    console.log(`[seed] ${OWNER_EMAIL} already in allowlist`);
   }
 
   console.log('[seed] done.');
