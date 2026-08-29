@@ -12,7 +12,7 @@ function LoginForm() {
   const blocked = params.get('error') === 'notallowed';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(blocked ? 'NOT REGISTERED — ACCESS BLOCKED' : '');
+  const [error, setError] = useState(blocked ? 'Who are you? I don\'t remember you.' : '');
   const [busy, setBusy] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -23,7 +23,7 @@ function LoginForm() {
     if (error) setShakeKey((k) => k + 1);
   }, [error]);
 
-  // Persona 5 overlay: show DENIED on top of everything, then scrub the query param
+  // show DENIED on top of everything, then scrub the query param
   useEffect(() => {
     if (blocked) {
       const t = setTimeout(() => router.replace('/login'), 80);
@@ -56,7 +56,7 @@ function LoginForm() {
     const { data: allowed } = await supabase.rpc('is_admin_user', { target_email: email });
     if (!allowed) {
       await supabase.auth.signOut();
-      setError('NOT REGISTERED — ACCESS BLOCKED');
+      setError('Who are you? This account does not belong here.');
       setBusy(false);
       return;
     }

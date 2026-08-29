@@ -25,9 +25,9 @@ export function AuthDenied({ message, onDismiss }: { message: string; onDismiss:
         <span className="auth-denied-stamp">DENIED</span>
 
         <div className="auth-denied-body">
-          <p className="auth-denied-kicker">// ACCESS // BLOCKED</p>
+          <p className="auth-denied-kicker">// ACCESS BLOCKED</p>
           <p className="auth-denied-title display">{message}</p>
-          <p className="auth-denied-hint">The Google account or email is not on the allowlist. Ask the owner to register it first.</p>
+          <p className="auth-denied-hint">The Google account or Email is not on the allowlist. Maybe ask ravedeprinz first, or not, this is his personal space anyway.</p>
         </div>
 
         <button type="button" className="auth-denied-close touch-target" onClick={onDismiss} aria-label="Dismiss error">
