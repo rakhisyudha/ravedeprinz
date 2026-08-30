@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getNoteById } from '../../../lib/cms';
 import { readingMinutes } from '../../../lib/readingTime';
 import ReadingProgress from './ReadingProgress';
+import ShareBar from './ShareBar';
 
 function renderInline(text: string) {
   const parts: React.ReactNode[] = [];
@@ -64,8 +65,30 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const note = await getNoteById(id);
   if (!note) return { title: 'Note not found' };
-  const description = note.subtitle || note.body?.replace(/[#>*_`~\[\]()\-!]/g, '').slice(0, 160);
-  return { title: `${note.title} // ravedeprinz`, description };
+  const rawDesc = note.subtitle || note.body?.replace(/[#>*_`~\[\]()\-!]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) || '';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ravedeprinz.me';
+  const url = `${siteUrl.replace(/\/$/, '')}/notes/${note.id ?? id}`;
+  const rawImage = note.image_url ?? null;
+  const image = rawImage ? (rawImage.startsWith('http') ? rawImage : `${siteUrl.replace(/\/$/, '')}${rawImage}`) : null;
+
+  return {
+    title: `${note.title} // ravedeprinz`,
+    description: rawDesc,
+    openGraph: {
+      title: note.title,
+      description: rawDesc,
+      type: 'article',
+      url,
+      images: image ? [{ url: image, width: 1200, height: 630, alt: note.title }] : undefined,
+      siteName: 'ravedeprinz',
+    },
+    twitter: {
+      card: image ? 'summary_large_image' : 'summary',
+      title: note.title,
+      description: rawDesc,
+      images: image ? [image] : undefined,
+    },
+  };
 }
 
 export default async function NotePage({ params }: { params: Promise<{ id: string }> }) {
@@ -73,11 +96,14 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
   const note = await getNoteById(id);
   if (!note) notFound();
 
-  const minutes = readingMinutes(note.body ?? '');
+  const minutes = readingMinutes(note.body ?? '', note.image_url as string | null);
   const date = note.published_at
     ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
     : '';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ravedeprinz.me';
   const href = `/notes/${note.id ?? note.slug}`;
+  const absoluteHref = `${siteUrl.replace(/\/$/, '')}${href}`;
+  const absoluteImage = note.image_url ? (note.image_url.startsWith('http') ? note.image_url : `${siteUrl.replace(/\/$/, '')}${note.image_url}`) : null;
 
   return (
     <>
@@ -112,6 +138,25 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
         </header>
 
         <NoteBody body={note.body ?? ''} />
+
+        {/* Preview as it appears when shared — P5 card with image */}
+        <div className="note-preview cut">
+          <div className="note-preview-image">
+            {absoluteImage ? (
+              <Image src={note.image_url!} alt={note.title} fill sizes="(max-width: 768px) 100vw, 400px" />
+            ) : (
+              <div className="note-preview-placeholder">R</div>
+            )}
+          </div>
+          <div className="note-preview-body">
+            <p className="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
+            <p className="note-preview-title">{note.title}</p>
+            <p className="note-preview-desc">{note.subtitle || note.body?.slice(0, 120)}</p>
+            <span className="note-preview-url">ravedeprinz.me{href}</span>
+          </div>
+        </div>
+
+        <ShareBar url={absoluteHref} title={note.title} />
 
         <footer className="note-article-footer">
           <span className="note-pill"># {note.tag}</span>

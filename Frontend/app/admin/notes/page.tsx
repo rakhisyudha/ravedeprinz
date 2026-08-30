@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../../lib/admin-api';
 import { Field, Section } from '../../../components/admin/AdminFields';
 import { AdminTabs, AccordionItem } from '../../../components/admin/AdminTabs';
+import { AdminImageUpload } from '../../../components/admin/AdminImageUpload';
 import { readingMinutes } from '../../../lib/readingTime';
 
 type NoteRow = Record<string, string | number | boolean | null>;
@@ -53,8 +54,9 @@ export default function AdminNotes() {
                   <Field label="TAG" value={String(draft.tag ?? 'REFLECTION')} onChange={(v) => setDraft((d) => ({ ...d, tag: v }))} />
                   <Field label="SUBTITLE (META DESC)" value={String(draft.subtitle ?? '')} onChange={(v) => setDraft((d) => ({ ...d, subtitle: v }))} />
                   <Field label="AUTHOR" value={String(draft.author ?? '')} onChange={(v) => setDraft((d) => ({ ...d, author: v }))} />
-                  <div className="admin-field"><span className="admin-field-label">READ (COMPUTED)</span><span className="admin-read-preview">READ {String(readingMinutes(String(draft.body ?? ''))).padStart(2, '0')} MIN</span></div>
+                  <div className="admin-field"><span className="admin-field-label">READ (COMPUTED)</span><span className="admin-read-preview">READ {String(readingMinutes(String(draft.body ?? ''), String(draft.image_url ?? ''))).padStart(2, '0')} MIN</span></div>
                 </div>
+                <AdminImageUpload label="COVER IMAGE" value={String(draft.image_url ?? '')} onChange={(v) => setDraft((d) => ({ ...d, image_url: v }))} />
                 <Field label="BODY (MARKDOWN)" textarea value={String(draft.body ?? '')} onChange={(v) => setDraft((d) => ({ ...d, body: v }))} />
                 <div className="admin-row-actions">
                   <button className="auth-button touch-target" onClick={() => saveRow(draft, false)}>SAVE DRAFT</button>
@@ -77,8 +79,9 @@ export default function AdminNotes() {
                         <Field label="TAG" value={String(note.tag ?? '')} onChange={update(index, 'tag')} />
                         <Field label="SUBTITLE (META DESC)" value={String(note.subtitle ?? '')} onChange={update(index, 'subtitle')} />
                         <Field label="AUTHOR" value={String(note.author ?? '')} onChange={update(index, 'author')} />
-                        <div className="admin-field"><span className="admin-field-label">READ (COMPUTED)</span><span className="admin-read-preview">READ {String(readingMinutes(String(note.body ?? ''))).padStart(2, '0')} MIN</span></div>
+                        <div className="admin-field"><span className="admin-field-label">READ (COMPUTED)</span><span className="admin-read-preview">READ {String(readingMinutes(String(note.body ?? ''), String(note.image_url ?? ''))).padStart(2, '0')} MIN</span></div>
                       </div>
+                      <AdminImageUpload label="COVER IMAGE" value={String(note.image_url ?? '')} onChange={update(index, 'image_url')} />
                       <Field label="BODY (MARKDOWN)" textarea value={String(note.body ?? '')} onChange={update(index, 'body')} />
                       <div className="admin-row-actions">
                         <span className="auth-error" style={{ margin: 0 }}>{note.published ? 'PUBLISHED' : 'DRAFT'}</span>

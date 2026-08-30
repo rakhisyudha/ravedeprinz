@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Page } from '../../components/Page';
 import { getNotesContent } from '../../lib/cms';
@@ -12,7 +13,7 @@ export default async function Notes() {
         {notes.map((note) => {
           const href = `/notes/${note.id ?? note.slug}`;
           const date = note.published_at ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase() : '';
-          const minutes = readingMinutes(note.body ?? '');
+          const minutes = readingMinutes(note.body ?? '', note.image_url as string | null);
           return (
             <article className="note lift" key={note.id ?? note.slug}>
               <Link href={href} target="_blank" rel="noopener noreferrer" className="note-link">
@@ -22,6 +23,11 @@ export default async function Notes() {
                   <h2>{note.title}</h2>
                   <p>{note.subtitle || note.body}</p>
                 </div>
+                {note.image_url && (
+                  <div className="note-thumb">
+                    <Image src={note.image_url} alt={note.title} fill sizes="120px" />
+                  </div>
+                )}
                 <span className="note-arrow">↗</span>
               </Link>
             </article>
