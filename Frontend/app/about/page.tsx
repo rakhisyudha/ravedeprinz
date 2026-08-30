@@ -7,6 +7,7 @@ export default async function About() {
   const about = await getAboutContent();
   const work = await getWorkContent();
   const content = about.content;
+  const portrait = content?.portrait_url || profileImage;
   const grouped = about.skills.reduce<Record<string, string[]>>((acc, item) => {
     (acc[item.category] ??= []).push(item.skill_name);
     return acc;
@@ -17,7 +18,7 @@ export default async function About() {
       <section className="about-grid">
         <article className="panel cut about-story p-6 sm:p-10">
           <div className="about-portrait about-portrait-sticker">
-            <Image src={profileImage} alt="Rakhis de Yudha" fill sizes="260px" />
+            <Image src={portrait} alt="Rakhis de Yudha" fill sizes="260px" />
             <span className="about-photo-label">RDP / 001</span>
             <span className="about-photo-badge">BUILDING</span>
           </div>

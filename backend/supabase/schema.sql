@@ -264,3 +264,9 @@ create policy "public reads assets" on public.assets for select using (true);
 -- is_admin_user(target_email) RPC decides allowlist membership.
 create policy "no direct reads of admin users" on public.admin_users for select using (false);
 create policy "no direct reads of audit logs" on public.audit_logs for select using (false);
+
+-- ---------------------------------------------------------------------------
+-- CMS-managed images (files stored on the server, URL stored here)
+-- ---------------------------------------------------------------------------
+alter table public.about_content add column if not exists portrait_url text;
+alter table public.projects add column if not exists image_url text;

@@ -142,8 +142,10 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
         else await adminClient.from('about_content').insert({ ...content });
       }
       if (skills) {
-        await adminClient.from('skills').delete().neq('id', EMPTY_UUID);
-        await adminClient.from('skills').insert(skills.map(({ id, ...rest }) => rest));
+        const del = await adminClient.from('skills').delete().neq('id', EMPTY_UUID);
+        if (del.error) return json({ error: `skills delete: ${del.error.message}` }, 400);
+        const ins = await adminClient.from('skills').insert(skills.map(({ id, ...rest }) => rest));
+        if (ins.error) return json({ error: `skills: ${ins.error.message}` }, 400);
       }
       await logAudit(admin, 'UPDATE', 'about');
       return json({ ok: true });
@@ -161,13 +163,29 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
     }
     if (method === 'PUT') {
       const { work, education } = await request.json() as { work?: Array<Record<string, unknown>>; education?: Array<Record<string, unknown>> };
+
+      // Delete only rows the client removed, then upsert the rest by id.
+      // A failed write never wipes rows the user kept.
+      async function replaceRows(table: 'work_entries' | 'education_entries', rows: Array<Record<string, unknown>>, label: string): Promise<Response | null> {
+        const ids = rows.map((r) => r.id).filter((v): v is string => typeof v === 'string' && v !== '');
+        const del = ids.length
+          ? await adminClient.from(table).delete().not('id', 'in', `(${ids.join(',')})`)
+          : await adminClient.from(table).delete().neq('id', EMPTY_UUID);
+        if (del.error) return json({ error: `${label}: ${del.error.message}` }, 400);
+
+        const upsertRows = rows.map(({ id, ...rest }) => (id ? { id, ...rest } : rest));
+        const up = await adminClient.from(table).upsert(upsertRows, { onConflict: 'id' });
+        if (up.error) return json({ error: `${label}: ${up.error.message}` }, 400);
+        return null;
+      }
+
       if (work) {
-        await adminClient.from('work_entries').delete().neq('id', EMPTY_UUID);
-        await adminClient.from('work_entries').insert(work);
+        const err = await replaceRows('work_entries', work, 'work_entries');
+        if (err) return err;
       }
       if (education) {
-        await adminClient.from('education_entries').delete().neq('id', EMPTY_UUID);
-        await adminClient.from('education_entries').insert(education);
+        const err = await replaceRows('education_entries', education, 'education_entries');
+        if (err) return err;
       }
       await logAudit(admin, 'UPDATE', 'work');
       return json({ ok: true });

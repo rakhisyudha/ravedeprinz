@@ -37,3 +37,6 @@ next-env.d.ts
 # Local scratch
 dummy/
 Dummy/
+
+# CMS-uploaded images (stored on server, not in git)
+public/uploads/

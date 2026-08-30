@@ -13,21 +13,23 @@ export default function AdminWork() {
   const [education, setEducation] = useState<EduRow[]>([]);
   const [status, setStatus] = useState('LOADING…');
 
-  useEffect(() => {
-    (async () => {
-      const res = await adminApi<{ work: WorkRow[]; education: EduRow[] }>('/api/admin/work');
-      if (res.data) {
-        setWork(res.data.work ?? []);
-        setEducation(res.data.education ?? []);
-        setStatus('LOADED');
-      } else setStatus(res.error ?? 'ERROR');
-    })();
-  }, []);
+  async function load() {
+    const res = await adminApi<{ work: WorkRow[]; education: EduRow[] }>('/api/admin/work');
+    if (res.data) {
+      setWork(res.data.work ?? []);
+      setEducation(res.data.education ?? []);
+      setStatus('LOADED');
+    } else setStatus(res.error ?? 'ERROR');
+  }
+
+  useEffect(() => { load(); }, []);
 
   async function save() {
     setStatus('SAVING…');
     const res = await adminApi('/api/admin/work', { method: 'PUT', body: { work, education } });
     setStatus(res.error ? `ERROR // ${res.error}` : 'SAVED');
+    // Reload so newly added rows carry their real DB ids (prevents duplicates on next save).
+    if (!res.error) await load();
   }
 
   const updateWork = (index: number, key: string) => (value: string) => setWork((rows) => rows.map((r, i) => (i === index ? { ...r, [key]: value } : r)));

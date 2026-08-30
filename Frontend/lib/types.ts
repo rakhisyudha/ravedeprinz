@@ -46,6 +46,7 @@ export type AboutContent = {
     paragraph_one: string;
     paragraph_two: string;
     portrait_asset_id?: string | null;
+    portrait_url?: string | null;
   } | null;
   skills: SkillItem[];
 };
@@ -86,6 +87,7 @@ export type ProjectContent = {
   live_url?: string | null;
   source_url?: string | null;
   image_asset_id?: string | null;
+  image_url?: string | null;
   featured: boolean;
 };
 

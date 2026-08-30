@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../../lib/admin-api';
 import { Field, Section } from '../../../components/admin/AdminFields';
 import { AdminTabs, AccordionItem } from '../../../components/admin/AdminTabs';
+import { AdminImageUpload } from '../../../components/admin/AdminImageUpload';
 
 type ProjectRow = Record<string, string | number | boolean | null>;
 
@@ -56,6 +57,7 @@ export default function AdminProjects() {
                   <Field label="LIVE URL" value={String(draft.live_url ?? '')} onChange={(v) => setDraft((d) => ({ ...d, live_url: v }))} />
                   <Field label="SOURCE URL" value={String(draft.source_url ?? '')} onChange={(v) => setDraft((d) => ({ ...d, source_url: v }))} />
                 </div>
+                <AdminImageUpload label="IMAGE" value={String(draft.image_url ?? '')} onChange={(v) => setDraft((d) => ({ ...d, image_url: v }))} />
                 <Field label="DESCRIPTION" textarea value={String(draft.description ?? '')} onChange={(v) => setDraft((d) => ({ ...d, description: v }))} />
                 <button className="auth-button touch-target" onClick={() => saveRow(draft)}>CREATE PROJECT</button>
               </Section>
@@ -79,6 +81,7 @@ export default function AdminProjects() {
                         <Field label="LIVE URL" value={String(project.live_url ?? '')} onChange={update(index, 'live_url')} />
                         <Field label="SOURCE URL" value={String(project.source_url ?? '')} onChange={update(index, 'source_url')} />
                       </div>
+                      <AdminImageUpload label="IMAGE" value={String(project.image_url ?? '')} onChange={update(index, 'image_url')} />
                       <Field label="DESCRIPTION" textarea value={String(project.description ?? '')} onChange={update(index, 'description')} />
                       <div className="admin-row-actions">
                         <button className="admin-nav-link touch-target" onClick={() => saveRow(project)}>SAVE</button>

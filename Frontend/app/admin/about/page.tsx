@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../../lib/admin-api';
 import { Field, Section, SaveBar } from '../../../components/admin/AdminFields';
 import { AdminTabs, AccordionItem } from '../../../components/admin/AdminTabs';
+import { AdminImageUpload } from '../../../components/admin/AdminImageUpload';
 
 type Skill = { id?: string; category: string; skill_name: string };
 
@@ -50,8 +51,8 @@ export default function AdminAbout() {
                   <Field label="EYEBROW" value={String(content.eyebrow ?? '')} onChange={set('eyebrow')} />
                   <Field label="QUOTE" value={String(content.quote ?? '')} onChange={set('quote')} />
                   <Field label="QUOTE ACCENT" value={String(content.quote_accent ?? '')} onChange={set('quote_accent')} />
-                  <Field label="PORTRAIT ASSET ID" value={String(content.portrait_asset_id ?? '')} onChange={set('portrait_asset_id')} />
                 </div>
+                <AdminImageUpload label="PORTRAIT" value={String(content.portrait_url ?? '')} onChange={set('portrait_url')} />
                 <Field label="PARAGRAPH ONE" textarea value={String(content.paragraph_one ?? '')} onChange={set('paragraph_one')} />
                 <Field label="PARAGRAPH TWO" textarea value={String(content.paragraph_two ?? '')} onChange={set('paragraph_two')} />
               </Section>

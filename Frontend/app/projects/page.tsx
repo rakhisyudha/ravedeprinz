@@ -17,7 +17,7 @@ const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
 
 function ProjectFrame({ project, index }: { project: ProjectContent; index: number }) {
   const deployed = project.deployment_status === 'DEPLOYED';
-  const image = projectImages[project.slug];
+  const image = project.image_url || projectImages[project.slug];
   const stickerKind = stickerKinds[index % stickerKinds.length];
   return <div className="project-media">
     <div className={`project-frame project-card-${index % 4}`}>
