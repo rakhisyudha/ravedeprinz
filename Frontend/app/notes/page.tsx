@@ -28,7 +28,6 @@ export default async function Notes() {
                     <Image src={note.image_url} alt={note.title} fill sizes="120px" />
                   </div>
                 )}
-                <span className="note-arrow">↗</span>
               </Link>
             </article>
           );
