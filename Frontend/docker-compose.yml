@@ -18,11 +18,12 @@ services:
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     restart: unless-stopped
     volumes:
-      - uploads:/app/public/uploads
+      - ravedeprinz_uploads:/app/public/uploads
 
 networks:
   webnet:
     name: webnet
 
 volumes:
-  uploads:
+  ravedeprinz_uploads:
+    name: ravedeprinz_uploads
