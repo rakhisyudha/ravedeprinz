@@ -1,4 +1,4 @@
-import type { SiteSettings, HomeContent, AboutContent, WorkContent, ProjectsContent, NotesContent, NowContent } from './types';
+import type { SiteSettings, HomeContent, AboutContent, WorkContent, ProjectsContent, NotesContent, NowContent, NoteItem } from './types';
 import { projects as staticProjects, work as staticWork, education as staticEducation, skills as staticSkills, notes as staticNotes } from '../data/content';
 
 const API = process.env.CMS_API_URL ?? 'http://localhost:4000';
@@ -123,6 +123,10 @@ export async function getNotesContent(): Promise<NotesContent> {
   return {
     notes: staticNotes.map((n) => ({ title: n.title, slug: n.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), body: n.text, tag: n.tag, published_at: n.date })),
   };
+}
+
+export async function getNoteById(id: string): Promise<NoteItem | null> {
+  return getJson<NoteItem>(`/api/content/notes/${encodeURIComponent(id)}`);
 }
 
 // ---------------------------------------------------------------------------

@@ -78,6 +78,15 @@ export async function publicContent(request: Request, url: URL): Promise<Respons
     }
 
     default:
+      if (url.pathname.startsWith('/api/content/notes/')) {
+        const id = decodeURIComponent(url.pathname.split('/').pop() ?? '');
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        let query = adminClient.from('notes').select('*').eq('published', true);
+        query = isUuid ? query.eq('id', id) : query.eq('slug', id);
+        const { data } = await query.maybeSingle();
+        if (!data) return json({ error: 'Not found' }, 404);
+        return json(data);
+      }
       return json({ error: 'Not found' }, 404);
   }
 }
@@ -231,7 +240,8 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
     if (method === 'POST') {
       const body = await request.json();
       const published = body.published ?? false;
-      const { data, error } = await adminClient.from('notes').insert({ ...body, published, published_at: published ? new Date().toISOString() : null }).select().single();
+      const insert = { title: body.title, slug: body.slug, body: body.body ?? '', tag: body.tag ?? 'REFLECTION', author: body.author ?? null, subtitle: body.subtitle ?? null, image_url: body.image_url ?? null, published, published_at: published ? new Date().toISOString() : null };
+      const { data, error } = await adminClient.from('notes').insert(insert).select().single();
       if (error) return json({ error: error.message }, 400);
       await logAudit(admin, published ? 'PUBLISH' : 'CREATE', 'note', data.id);
       return json(data);
@@ -239,8 +249,15 @@ export async function adminApi(request: Request, url: URL, admin: { id: string; 
     if (id && (method === 'PUT' || method === 'PATCH')) {
       const body = await request.json();
       const published = body.published;
-      const update: Record<string, unknown> = { ...body, updated_at: new Date().toISOString() };
-      if (typeof published === 'boolean') update.published_at = published ? new Date().toISOString() : null;
+      const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      const editable = ['title', 'slug', 'body', 'tag', 'author', 'subtitle', 'image_url', 'sort_order'] as const;
+      for (const key of editable) {
+        if (key in body) update[key] = body[key];
+      }
+      if (typeof published === 'boolean') {
+        update.published = published;
+        update.published_at = published ? new Date().toISOString() : null;
+      }
       const { data, error } = await adminClient.from('notes').update(update).eq('id', id).select().single();
       if (error) return json({ error: error.message }, 400);
       await logAudit(admin, published ? 'PUBLISH' : 'UPDATE', 'note', id);

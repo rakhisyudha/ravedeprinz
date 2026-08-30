@@ -99,6 +99,9 @@ export type NoteItem = {
   slug: string;
   body: string;
   tag: string;
+  author?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
   published_at?: string | null;
 };
 

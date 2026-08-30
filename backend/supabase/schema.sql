@@ -270,3 +270,10 @@ create policy "no direct reads of audit logs" on public.audit_logs for select us
 -- ---------------------------------------------------------------------------
 alter table public.about_content add column if not exists portrait_url text;
 alter table public.projects add column if not exists image_url text;
+
+-- ---------------------------------------------------------------------------
+-- Notes: author + optional cover image (CMS-managed)
+-- ---------------------------------------------------------------------------
+alter table public.notes add column if not exists author text;
+alter table public.notes add column if not exists image_url text;
+alter table public.notes add column if not exists subtitle text;

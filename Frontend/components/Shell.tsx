@@ -27,8 +27,8 @@ export function Shell({ children, footerName = 'ravedepr1nz', footerLabel = 'PER
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Admin and auth routes use their own dedicated shell.
-  if (path.startsWith('/admin') || path === '/login') {
+  // Admin, auth, and standalone note article use their own shells.
+  if (path.startsWith('/admin') || path === '/login' || /^\/notes\/[^/]+$/.test(path)) {
     return <>{children}</>;
   }
 

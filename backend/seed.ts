@@ -88,7 +88,7 @@ async function main() {
   }
 
   for (const n of seedNotes) {
-    await adminClient.from('notes').upsert({ slug: slugify(n.title), title: n.title, body: n.text, tag: n.tag, published: true, published_at: new Date().toISOString() }, { onConflict: 'slug' });
+    await adminClient.from('notes').upsert({ slug: slugify(n.title), title: n.title, body: n.text, tag: n.tag, author: 'Rakhis', published: true, published_at: new Date().toISOString() }, { onConflict: 'slug' });
   }
 
   await adminClient.from('now_current').upsert({
