@@ -44,7 +44,7 @@ export function AdminImageUpload({ label, value, onChange }: { label: string; va
       <div className="admin-upload-preview">
         {value ? (
           <div className="admin-upload-frame">
-            <Image src={value} alt="Upload preview" fill sizes="120px" unoptimized />
+            <Image src={value} alt="Upload preview" fill sizes="120px" />
           </div>
         ) : (
           <div className="admin-upload-empty">NO IMAGE</div>
