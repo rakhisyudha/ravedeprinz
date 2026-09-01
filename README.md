@@ -140,3 +140,16 @@ social preview, while the `body` column is the article itself.
 - Auth uses Supabase. Login is handled by `app/auth/callback/route.ts`.
 - The frontend build produces the standalone output required by the
   `Frontend/Dockerfile`.
+
+
+## To Be Implemented
+
+- `/savepoint` session to put a gaming log. The `/notes` stays for a reflection 
+  and thoughts, and this `/savepoint` session will act like a log entry. Log is a Data, 
+  and Note are story.
+Each entry is small and consistent:
+- Cover image, platform, status: NOW PLAYING / COMPLETED / BACKLOG / SHELVED
+- Started and finished date, hours played, short verdict
+- One paragraph of personal note, or a review for the game
+- Somewhat will makes the app more lightweight, smoother, and more optimization will come.
+- `/notes/[id]` will have more share option and more compatibily to app that can be shared.
