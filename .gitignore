@@ -4,4 +4,5 @@ node_modules/
 dev-server.log
 dummy/
 Dummy/
+.commandcode/
 

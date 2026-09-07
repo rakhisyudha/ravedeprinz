@@ -1,0 +1,169 @@
+---
+import Base from '../../layouts/Base.astro';
+import NoteBody from '../../components/NoteBody.astro';
+import ReadingProgress from '../../components/ReadingProgress.svelte';
+import ShareBar from '../../components/ShareBar.svelte';
+import { getNoteById } from '../../lib/cms';
+import { readingMinutes } from '../../lib/readingTime';
+import {
+  absolutizeUpload,
+  cleanDescription,
+  getNoteCanonicalUrl,
+  getNoteOgImageUrl,
+  getSiteUrl,
+} from '../../lib/seo';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const note = slug ? await getNoteById(slug) : null;
+
+if (!note) {
+  Astro.response.status = 404;
+}
+
+const siteUrl = getSiteUrl();
+const url = note ? getNoteCanonicalUrl(note, slug ?? '') : `${siteUrl}/notes`;
+const description = note ? cleanDescription(note.body, note.subtitle) : '';
+const author = note?.author?.trim() || 'Rakhis de Yudha';
+const minutes = note ? readingMinutes(note.body ?? '', note.image_url) : 0;
+const date =
+  note?.published_at && !Number.isNaN(new Date(note.published_at).getTime())
+    ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+    : '';
+const coverAlt = note?.subtitle?.trim() || (note ? `Cover artwork for “${note.title}”` : '');
+const ogImage = note ? getNoteOgImageUrl(note, slug ?? '') : null;
+const absoluteImage = note ? absolutizeUpload(note.image_url) : null;
+
+const jsonLd = note
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: note.title,
+      description,
+      image: ogImage ? [ogImage] : undefined,
+      datePublished: note.published_at ?? undefined,
+      dateModified: note.updated_at ?? note.published_at ?? undefined,
+      author: { '@type': 'Person', name: author, url: siteUrl },
+      publisher: { '@type': 'Organization', name: 'ravedeprinz', url: siteUrl },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+      url,
+    }
+  : null;
+---
+<Base title={note ? `${note.title} // ravedeprinz` : 'Note not found // ravedeprinz'} currentPath="/notes" header={false} footer={true}>
+  <Fragment slot="head">
+    {note && (
+      <>
+        <link rel="canonical" href={url} />
+        <meta property="og:title" content={note.title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={url} />
+        <meta property="og:site_name" content="ravedeprinz" />
+        {note.published_at && <meta property="article:published_time" content={note.published_at} />}
+        {(note.updated_at ?? note.published_at) && (
+          <meta property="article:modified_time" content={(note.updated_at ?? note.published_at) as string} />
+        )}
+        <meta property="article:author" content={author} />
+        {note.tag && <meta property="article:tag" content={note.tag} />}
+        {ogImage && (
+          <>
+            <meta property="og:image" content={ogImage} />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+            <meta property="og:image:alt" content={`${note.title} // ravedeprinz`} />
+          </>
+        )}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={note.title} />
+        <meta name="twitter:description" content={description} />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+      </>
+    )}
+  </Fragment>
+
+  {!note ? (
+    <main class="page note-page" data-page="NOTES">
+      <div class="auth-denied cut" role="alert">
+        <span class="auth-denied-stamp">404</span>
+        <div class="auth-denied-body">
+          <p class="auth-denied-kicker">// LOST ROUTE</p>
+          <p class="auth-denied-title display">NOTHING HERE.</p>
+          <p class="auth-denied-hint">This note slipped out of the archive. Head back to the index and pick another route.</p>
+        </div>
+        <a href="/notes" class="auth-denied-close touch-target">[ BACK TO NOTES ]</a>
+      </div>
+    </main>
+  ) : (
+    <>
+      <header class="note-header">
+        <a href="/notes" class="note-header-back touch-target" aria-label="Back to notes">
+          <span aria-hidden="true">←</span>
+        </a>
+        <span class="note-header-title">NOTES</span>
+        <span class="note-header-spacer" aria-hidden="true" />
+      </header>
+      <main class="page note-page" data-page="NOTES">
+        <span class="brand-watermark" aria-hidden="true">R</span>
+        <ReadingProgress client:load />
+
+        <div class="note-article">
+          <header class="note-article-head">
+            <p class="eyebrow">{note.tag}</p>
+            <h1 class="display">{note.title}</h1>
+            {note.subtitle && <p class="note-article-subtitle">{note.subtitle}</p>}
+            <div class="note-article-meta">
+              {note.author && (
+                <>
+                  <span class="note-meta-author">{note.author}</span>
+                  <span class="note-meta-dot">·</span>
+                </>
+              )}
+              <span class="note-meta-date">{date}</span>
+              <span class="note-meta-dot">·</span>
+              <span class="note-meta-read">READ {String(minutes).padStart(2, '0')} MIN</span>
+            </div>
+            {note.image_url && (
+              <div class="note-article-image">
+                <img src={note.image_url} alt={coverAlt} />
+              </div>
+            )}
+          </header>
+
+          <NoteBody body={note.body ?? ''} />
+
+          {/* Archive card: on-page presentation in the site's own design.
+              Real social previews come from the generated OG image, not this. */}
+          <div class="note-preview cut">
+            <div class="note-preview-image">
+              {absoluteImage ? (
+                <img src={note.image_url!} alt="" loading="lazy" />
+              ) : (
+                <div class="note-preview-placeholder">R</div>
+              )}
+            </div>
+            <div class="note-preview-body">
+              <p class="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
+              <p class="note-preview-title">{note.title}</p>
+              <p class="note-preview-desc">{cleanDescription(note.body, note.subtitle, 120)}</p>
+              <span class="note-preview-url">ravedeprinz.me{new URL(url).pathname}</span>
+            </div>
+          </div>
+
+          {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+
+          <ShareBar client:load url={url} title={note.title} description={description} />
+
+          <div class="note-article-footer">
+            <span class="note-pill"># {note.tag}</span>
+          </div>
+          <style>
+            /* Plain-<img> fill equivalence inside the fixed preview frame. */
+            .note-preview-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+          </style>
+        </div>
+      </main>
+    </>
+  )}
+</Base>

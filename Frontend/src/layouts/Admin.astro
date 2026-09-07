@@ -1,0 +1,71 @@
+---
+import Base from './Base.astro';
+import AdminNav from '../components/admin/AdminNav.astro';
+import AdminUserMenu from '../components/admin/AdminUserMenu.svelte';
+import AdminWelcome from '../components/admin/AdminWelcome.svelte';
+
+interface Props {
+  title?: string;
+  currentPath?: string;
+}
+
+// Server-side gate shared by every /admin/* page: the shell never renders
+// for unauthenticated requests, non-admins get a forbidden panel, and an
+// unreachable CMS gets an offline panel. The Bun API re-verifies anyway.
+// NOTE: every page using this layout must set `export const prerender =
+// false` itself — Astro only honors prerender on pages, never layouts.
+const { title = 'CONTROL', currentPath = '/admin' } = Astro.props;
+
+const apiBase = (
+  import.meta.env.PUBLIC_CMS_API_URL ?? 'http://localhost:4100'
+).replace(/\/$/, '');
+
+// Verified once per request by src/middleware.ts (layouts cannot redirect).
+// Unauthenticated browsers never reach this layout; the null-user branch
+// below is defensive only.
+const gate = Astro.locals.adminGate ?? { reachable: false, user: null };
+const reachable = gate.reachable;
+const user = gate.user;
+---
+<Base title={title} currentPath={currentPath} header={false} footer={false}>
+  <main class="admin-page">
+    <div class="admin-shell">
+      {!reachable ? (
+        <div class="auth-denied cut" role="alert">
+          <span class="auth-denied-stamp">503</span>
+          <div class="auth-denied-body">
+            <p class="auth-denied-kicker">// ARCHIVE OFFLINE</p>
+            <p class="auth-denied-title display">NOTHING TO SEE RIGHT NOW.</p>
+            <p class="auth-denied-hint">The archive isn’t responding. Give it a moment and try again.</p>
+          </div>
+          <a href="/" class="auth-denied-close touch-target">[ HOME ]</a>
+        </div>
+      ) : !user || !user.is_admin ? (
+        <div class="auth-denied cut" role="alert">
+          <span class="auth-denied-stamp">403</span>
+          <div class="auth-denied-body">
+            <p class="auth-denied-kicker">// ACCESS DENIED</p>
+            <p class="auth-denied-title display">YOU’RE NOT ON THE LIST.</p>
+            <p class="auth-denied-hint">This archive is private. Your account isn’t cleared for entry.</p>
+          </div>
+          <a href="/" class="auth-denied-close touch-target">[ HOME ]</a>
+        </div>
+      ) : (
+        <>
+          <header class="admin-header">
+            <div class="admin-header-top">
+              <div>
+                <p class="eyebrow">// CONTENT CONTROL</p>
+                <h1 class="display">CMS</h1>
+              </div>
+              <AdminUserMenu client:load email={user!.email} apiBase={apiBase} />
+            </div>
+            <AdminWelcome client:load />
+          </header>
+          <AdminNav currentPath={currentPath} />
+          <slot />
+        </>
+      )}
+    </div>
+  </main>
+</Base>
