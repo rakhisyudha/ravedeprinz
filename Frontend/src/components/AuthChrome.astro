@@ -1,0 +1,28 @@
+---
+// /login uses the same fixed .site-header shell as the rest of the site
+// (same CSS classes, same responsive breakpoints, same brand mark + angular
+// trigger geometry + red divider). The trigger here reads [ HOME ] and
+// returns to / instead of opening the INDEX nav — the rest of the
+// navigation is irrelevant on the auth page. No duplicate header CSS: every
+// style lives in global.css on the shared .site-header / .site-mark /
+// .menu-trigger rules, including the 900px and 600px responsive overrides.
+interface Props {
+  currentPath?: string;
+}
+const { currentPath = '/login' } = Astro.props;
+---
+<header class={`site-header`}>
+  <a href="/" class="site-mark" aria-label="ravedeprinz home"><strong>r</strong>avedeprinz_</a>
+  <div class="header-state"><span>SIGN IN</span></div>
+  <a
+    href="/"
+    class="menu-trigger"
+    aria-label="Back to home"
+  >
+    <span class="bracket bracket-left">[</span>
+    <span class="menu-trigger-label">
+      <span class="menu-trigger-swap">HOME</span>
+    </span>
+    <span class="bracket bracket-right">]</span>
+  </a>
+</header>

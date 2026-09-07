@@ -87,6 +87,10 @@ cd Backend
 docker compose up -d --build
 ```
 
+Migrations run first inside the API container on every boot, then
+seeds, then the API. Seeds are idempotent — re-running `docker compose
+up` after a crash or reboot just resumes where it stopped.
+
 PostgreSQL on `5433` (volume `ravedeprinz_pgdata`), API on `4100`
 (volume `ravedeprinz_uploads_v2` at `/data/uploads`). Seeds run on boot
 and skip when data exists.

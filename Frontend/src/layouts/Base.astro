@@ -47,12 +47,32 @@ const footerLabel = liveSite?.footer_label ?? fallbackSite.footer_label;
       </footer>
     )}
     <style is:global>
-      /* Route choreography (mirrors the previous AnimatePresence exit/enter):
-         old page slides out first, new page slides in after. */
-      ::view-transition-old(root) { animation: page-exit 0.32s ease-out both; }
-      ::view-transition-new(root) { animation: page-enter 0.32s ease-out 0.32s both; }
-      @keyframes page-exit { to { opacity: 0; transform: translateY(-18px); } }
-      @keyframes page-enter { from { opacity: 0; transform: translateY(18px); } }
+      /* Persona 5-style route swap: the outgoing page is sheared off
+         along a hard diagonal cut, then the incoming page wipes in from
+         the right along the matching cut. No fade, no rise — the current
+         composition is replaced by the next one like a panel transformation.
+         Timing stays in the 300–500ms band: exit 0.34s, enter 0.4s. The
+         ~12% slope echoes the site's skewX(-30deg) stripes and the menu
+         scene's diagonal panels. */
+      ::view-transition-old(root) {
+        animation: page-wipe-out 0.34s cubic-bezier(0.76, 0, 0.24, 1) both;
+      }
+      ::view-transition-new(root) {
+        animation: page-wipe-in 0.4s cubic-bezier(0.76, 0, 0.24, 1) 0.12s both;
+      }
+      /* Outgoing page's diagonal cut travels from right to left, carving
+         the surface away. The clip top edge sits above its bottom edge by
+         12% of the viewport, giving the wipe a sharp angular feel. */
+      @keyframes page-wipe-out {
+        from { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+        to   { clip-path: polygon(0 0, 12% 0, 0 100%, 0 100%); }
+      }
+      /* Incoming page's diagonal edge travels from right to left across
+         the viewport, revealing the new composition beneath. */
+      @keyframes page-wipe-in {
+        from { clip-path: polygon(100% 0, 112% 0, 112% 100%, 100% 100%); }
+        to   { clip-path: polygon(0 0, 112% 0, 112% 100%, 0 100%); }
+      }
 
       @media (prefers-reduced-motion: reduce) {
         ::view-transition-old(root),
