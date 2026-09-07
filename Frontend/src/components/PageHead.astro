@@ -1,0 +1,23 @@
+---
+// Static port of components/Page.tsx (minus the client wrapper).
+// The page-head entrance lives in Base.astro so it also covers
+// view-transition snapshots consistently.
+interface Props {
+  index: string;
+  title: string;
+  intro: string;
+}
+
+const { index, title, intro } = Astro.props;
+---
+<main class="page" data-page={title}>
+  <span class="brand-watermark" aria-hidden="true">R</span>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow"><span class="slash">//</span> {index}</p>
+      <h1 class="display">{title}</h1>
+    </div>
+    <p class="intro">{intro}</p>
+  </div>
+  <slot />
+</main>

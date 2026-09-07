@@ -1,0 +1,43 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { fetchNow } from '../lib/cms';
+import { nowContent as fallbackNow } from '../data/site';
+
+export const prerender = false;
+
+// Live snapshot when the CMS answers; otherwise the intentional static
+// fallback below. Per-item scroll reveals return with the motion pass.
+const liveNow = await fetchNow();
+const data = {
+  current: liveNow?.current ?? fallbackNow.current!,
+  attention: liveNow?.attention ?? fallbackNow.attention,
+  history: liveNow?.history ?? fallbackNow.history,
+};
+const current = data.current;
+---
+<Base title="NOW" currentPath="/now">
+  <PageHead index="NOW / 006" title="NOW" intro="This page changes. So does everything on it.">
+    <header class="now-intro"><span class="eyebrow">NOW</span><span class="now-updated">{current.updated_label}</span><p>This page changes.<br />So does everything on it.</p></header>
+    <section class="now-current">
+      <div class="now-current-label"><span class="eyebrow">{current.label}</span><span class="now-current-number">[01]</span></div>
+      <h2 class="display">{current.title.split(' ')[0]}<br /><span>{current.title.split(' ').slice(1).join(' ')}</span></h2>
+      <p>{current.description}</p>
+    </section>
+    <section class="now-attention">
+      <div class="now-section-heading"><span class="eyebrow">WHAT HAS MY ATTENTION</span><span class="stripe" /></div>
+      {data.attention.map((item, index) => (
+        <article class={`attention-item attention-item-${index}`}>
+          <span class="attention-number">{item.number}</span>
+          <div><p class="eyebrow">{item.label}</p><h3>{item.title}</h3><p>{item.note}</p></div>
+        </article>
+      ))}
+    </section>
+    <section class="now-recent">
+      <div class="now-section-heading"><span class="eyebrow">RECENTLY</span><span class="stripe" /></div>
+      {data.history.map((item) => (
+        <p><span>{item.date_label}</span><i />{item.text}</p>
+      ))}
+    </section>
+  </PageHead>
+</Base>

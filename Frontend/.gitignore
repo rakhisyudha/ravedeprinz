@@ -1,8 +1,9 @@
 # Dependencies
 node_modules/
 
-# Next.js build output
-.next/
+# Astro build output
+dist/
+.astro/
 out/
 build/
 

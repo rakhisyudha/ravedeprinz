@@ -1,15 +1,17 @@
 {
-  "name": "ravedeprinz-cms",
-  "version": "1.0.0",
+  "name": "ravedeprinz-api",
+  "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "bun --watch index.ts",
-    "start": "bun run index.ts",
-    "seed": "bun run seed.ts"
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "seed": "bun src/seed.ts",
+    "seed-auth": "bun src/seed-auth.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.49.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.7.2"

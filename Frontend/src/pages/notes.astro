@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { fetchNotes } from '../lib/cms';
+import { notes as fallbackNotes } from '../data/content';
+import { readingMinutes } from '../lib/readingTime';
+import { slugify } from '../data/site';
+
+export const prerender = false;
+
+// Live notes when the CMS answers; otherwise the intentional static
+// fallback below, normalized to the same shape.
+const liveNotes = await fetchNotes();
+const notes =
+  liveNotes?.notes ??
+  fallbackNotes.map((n) => ({
+    title: n.title,
+    slug: slugify(n.title),
+    body: n.text,
+    tag: n.tag,
+    author: 'Rakhis',
+    subtitle: null as string | null,
+    image_url: null as string | null,
+    published_at: null as string | null,
+  }));
+
+function dateLabel(publishedAt?: string | null): string {
+  if (!publishedAt) return '';
+  const parsed = new Date(publishedAt);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
+}
+---
+<Base title="NOTES" currentPath="/notes">
+  <PageHead index="TRANSMISSIONS / 005" title="NOTES" intro="Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose.">
+    <section class="notes-list">
+      {notes.map((note) => {
+        const slug = note.slug?.trim() || slugify(note.title);
+        const minutes = readingMinutes(note.body ?? '', note.image_url);
+        return (
+          <article class="note lift">
+            <a href={`/notes/${slug}`} class="note-link">
+              <span class="note-date">{dateLabel(note.published_at)}<small>READ {String(minutes).padStart(2, '0')} MIN</small></span>
+              <div class="note-body">
+                <p class="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
+                <h2>{note.title}</h2>
+                <p>{note.subtitle || note.body}</p>
+              </div>
+              {note.image_url && (
+                <div class="note-thumb">
+                  <img src={note.image_url} alt="" loading="lazy" />
+                </div>
+              )}
+            </a>
+          </article>
+        );
+      })}
+    </section>
+  </PageHead>
+</Base>

@@ -4,26 +4,36 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
-        NEXT_PUBLIC_CMS_API_URL: ${NEXT_PUBLIC_CMS_API_URL:-http://localhost:4000}
+        # Browser-facing origin (the user's browser must reach Bun).
+        PUBLIC_CMS_API_URL: ${PUBLIC_CMS_API_URL:-http://localhost:4100}
+        # Server-side origin (resolved inside this container via webnet DNS,
+        # so localhost would point at itself — use the Bun service name).
+        CMS_API_URL: ${CMS_API_URL:-http://api:4100}
+        SITE_URL: ${SITE_URL:-http://localhost:3000}
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+    # Host port stays 3000 so the existing nginx proxy_pass keeps working;
+    # the container itself listens on 3100.
     ports:
-      - "3000:3000"
+      - "3000:3100"
     environment:
-      CMS_API_URL: ${CMS_API_URL:-http://cms:4000}
-      NEXT_PUBLIC_CMS_API_URL: ${NEXT_PUBLIC_CMS_API_URL:-http://localhost:4000}
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      # Hardcoded (not interpolated): inside this container localhost is
+      # itself, so server-side fetches must use the Bun service name on
+      # webnet. Frontend/.env keeps localhost:4100 for host-side dev and
+      # builds; compose file interpolation would otherwise leak the
+      # host value in here because compose auto-loads that .env file.
+      CMS_API_URL: http://api:4100
+      PUBLIC_CMS_API_URL: ${PUBLIC_CMS_API_URL:-http://localhost:4100}
     restart: unless-stopped
-    volumes:
-      - ravedeprinz_uploads:/app/public/uploads
+    networks:
+      - webnet
 
 networks:
   webnet:
     name: webnet
 
 volumes:
+  # Superseded by Backend's ravedeprinz_uploads_v2 volume. Retained (with
+  # its files) so pre-cutover /uploads/* references are not destroyed.
+  # Migrate needed files, then drop this volume.
   ravedeprinz_uploads:
     name: ravedeprinz_uploads

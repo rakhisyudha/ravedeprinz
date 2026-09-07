@@ -1,31 +1,26 @@
 {
   "name": "ravedeprinz",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "api:dev": "bun run backend/index.ts",
-    "seed": "bun run backend/seed.ts"
+    "dev": "astro dev --port 3100",
+    "build": "astro build",
+    "preview": "astro preview --port 3100",
+    "start": "node ./dist/server/entry.mjs"
   },
   "dependencies": {
-    "framer-motion": "^11.11.17",
-    "motion": "^13.1.1",
-    "next": "^15.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.49.1"
+    "@astrojs/node": "^11.1.5",
+    "@astrojs/svelte": "^9.0.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "astro": "^7.3.1",
+    "satori": "^0.33.4",
+    "svelte": "^5.57.0",
+    "tailwindcss": "^3.4.16"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.16",
     "typescript": "^5.7.2"
   }
 }

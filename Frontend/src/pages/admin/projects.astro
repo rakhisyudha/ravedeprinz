@@ -1,0 +1,13 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import AdminProjects from '../../components/admin/AdminProjects.svelte';
+
+export const prerender = false;
+
+const apiBase = (
+  import.meta.env.PUBLIC_CMS_API_URL ?? 'http://localhost:4100'
+).replace(/\/$/, '');
+---
+<Admin title="CONTROL — PROJECTS" currentPath="/admin/projects">
+  <AdminProjects client:load apiBase={apiBase} />
+</Admin>

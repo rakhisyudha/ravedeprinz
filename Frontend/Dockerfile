@@ -2,45 +2,36 @@
 
 FROM node:22-alpine AS deps
 WORKDIR /app
-
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 FROM node:22-alpine AS builder
 WORKDIR /app
-
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_SITE_URL
-ARG NEXT_PUBLIC_CMS_API_URL
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_CMS_API_URL=$NEXT_PUBLIC_CMS_API_URL
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-ENV NEXT_TELEMETRY_DISABLED=1
+ARG PUBLIC_CMS_API_URL=http://localhost:4100
+ARG CMS_API_URL=http://localhost:4100
+ARG SITE_URL=http://localhost:3000
+ARG PUBLIC_SITE_URL=http://localhost:3000
+ENV PUBLIC_CMS_API_URL=$PUBLIC_CMS_API_URL
+ENV CMS_API_URL=$CMS_API_URL
+ENV SITE_URL=$SITE_URL
+ENV PUBLIC_SITE_URL=$PUBLIC_SITE_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+ENV PORT=3100
+ENV HOST=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
+  && adduser --system --uid 1001 astro
+USER astro
 
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=astro:nodejs /app/dist ./dist
+COPY --from=builder --chown=astro:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=astro:nodejs /app/package.json ./package.json
 
-RUN mkdir -p ./public/uploads && chown nextjs:nodejs ./public/uploads
-
-USER nextjs
-EXPOSE 3000
-CMD ["node", "server.js"]
+EXPOSE 3100
+CMD ["node", "./dist/server/entry.mjs"]

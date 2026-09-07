@@ -1,0 +1,13 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import AdminNow from '../../components/admin/AdminNow.svelte';
+
+export const prerender = false;
+
+const apiBase = (
+  import.meta.env.PUBLIC_CMS_API_URL ?? 'http://localhost:4100'
+).replace(/\/$/, '');
+---
+<Admin title="CONTROL — NOW" currentPath="/admin/now">
+  <AdminNow client:load apiBase={apiBase} />
+</Admin>
