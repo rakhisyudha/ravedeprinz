@@ -12,6 +12,6 @@ ENV NODE_ENV=production
 EXPOSE 4100
 
 # Boot order: migrations FIRST so seeds and the API see the expected
-# schema. Seeds are idempotent (skip when content already exists); the
+# schema. Seeds are idempotent (skip when content already exists) the
 # API re-runs migrate() too, which is also idempotent.
 CMD ["sh", "-c", "bun src/migrate.ts && bun src/seed.ts && bun src/seed-auth.ts && bun src/index.ts"]

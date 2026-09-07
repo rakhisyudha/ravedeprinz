@@ -24,6 +24,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "4100:4100"
+    # env_file makes every Backend/.env variable visible to the
+    # container (PORT, DATABASE_URL, FRONTEND_URL, UPLOADS_DIR,
+    # AUTH_SEED_EMAIL, AUTH_SEED_PASSWORD). The hardcoded values
+    # below only fill in defaults when a variable is missing.
+    env_file:
+      - .env
     environment:
       PORT: 4100
       DATABASE_URL: postgres://archive:archive@db:5432/ravedeprinz
