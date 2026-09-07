@@ -6,26 +6,24 @@ import { join } from 'node:path';
 import { getNoteById } from '../../../lib/cms';
 import { absolutizeUpload, cleanDescription } from '../../../lib/seo';
 
-// Per-note 1200x630 social card in site identity. Always renders —
-// missing notes or covers degrade to the typography card, never an error.
-// Left panel reuses the website's visual primitives: skewed red stripe,
-// dot texture, // eyebrow + numbered route, asymmetric title with the
-// second line offset and a clipped red punctuation slab. Right panel
-// (cover artwork) is untouched.
+// Per-note 1200x630 social card. The right panel renders the cover
+// artwork untouched. The left panel is laid out like a crop of the
+// site's note detail page: small // tag eyebrow, the title as a single
+// dominant anchor, an excerpt that breathes underneath, and a thin
+// site-name line at the bottom. No decorative borders, no fake metadata,
+// no clipped accent shapes.
 export const prerender = false;
 
 const WIDTH = 1200;
 const HEIGHT = 630;
 
 const RED = '#d92323';
-const DARK_RED = '#732424';
 const BLACK = '#0d0d0d';
 const WHITE = '#ffffff';
 const GRAY = '#7b7b7b';
-const MUTED = '#b3b3b3';
+const MUTED = '#a8a8a8';
 
-// Same subtle dot texture the body uses — sits behind everything
-// without competing with type.
+// Same dot texture the body uses — sits behind everything.
 function dotTexture() {
   return {
     type: 'div',
@@ -37,46 +35,8 @@ function dotTexture() {
         right: 0,
         bottom: 0,
         backgroundImage:
-          'radial-gradient(rgba(255,255,255,0.06) 0.55px, transparent 0.55px)',
+          'radial-gradient(rgba(255,255,255,0.05) 0.55px, transparent 0.55px)',
         backgroundSize: '7px 7px',
-      },
-    },
-  };
-}
-
-// Skewed red stripe along the bottom — mirrors the .site-header::after
-// divider, .stripe, and .home-rule-label i rules on the actual site.
-function bottomStripe() {
-  return {
-    type: 'div',
-    props: {
-      style: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: 4,
-        backgroundColor: RED,
-        transform: 'skewX(-30deg)',
-        transformOrigin: 'left bottom',
-      },
-    },
-  };
-}
-
-// Vertical thin red guide — a structural accent, not decoration.
-// Echoes the .home-record::before left rule on the home list.
-function leftRule() {
-  return {
-    type: 'div',
-    props: {
-      style: {
-        position: 'absolute',
-        left: 64,
-        top: 56,
-        bottom: 56,
-        width: 2,
-        backgroundColor: RED,
       },
     },
   };
@@ -113,62 +73,16 @@ async function embedCover(path: string | null | undefined): Promise<string | nul
   }
 }
 
-// Format a publish date as `07 SEP 2026` for the eyebrow row.
-function formatStamp(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const months = [
-    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
-  ];
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  const month = months[d.getUTCMonth()] ?? 'JAN';
-  const year = d.getUTCFullYear();
-  return `${day} ${month} ${year}`;
-}
-
-// Derive a 3-digit route number from the slug or id so the metadata
-// row says `NOTES / 024` instead of inventing fake content.
-function routeNumber(note: { id?: string; slug?: string } | null): string {
-  const source = (note?.id ?? note?.slug ?? '').replace(/[^a-zA-Z0-9]/g, '');
-  if (!source) return '000';
-  let hash = 0;
-  for (let i = 0; i < source.length; i++) {
-    hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
-  }
-  return String(hash % 1000).padStart(3, '0');
-}
-
-// Split the title into two halves so the second line can be offset,
-// weighted differently, and have its terminal punctuation clipped in
-// red past the panel edge.
-function splitTitle(raw: string): { line1: string; line2: string } {
-  const trimmed = raw.trim();
-  const words = trimmed.split(/\s+/).slice(0, 6);
-  if (words.length <= 2) {
-    return { line1: '', line2: words.join(' ') || trimmed };
-  }
-  const mid = Math.ceil(words.length / 2);
-  return {
-    line1: words.slice(0, mid).join(' '),
-    line2: words.slice(mid).join(' '),
-  };
-}
-
 export const GET: APIRoute = async ({ params }) => {
   const slug = params.slug ?? '';
   const note = await getNoteById(slug).catch(() => null);
 
   const tag = (note?.tag ?? 'NOTES').toUpperCase();
-  const rawTitle = (note?.title ?? 'ravedeprinz').slice(0, 80);
-  const { line1, line2 } = splitTitle(rawTitle);
+  const title = (note?.title ?? 'ravedeprinz').slice(0, 80);
   const excerpt =
-    cleanDescription(note?.body, note?.subtitle, 120) ||
+    cleanDescription(note?.body, note?.subtitle, 160) ||
     'Short transmissions from the workbench.';
   const cover = await embedCover(note?.image_url);
-  const stamp = formatStamp(note?.published_at);
-  const route = routeNumber(note);
 
   const [regular, bold] = await Promise.all([
     loadFontFile('FOT-Rodin-Pro-M.otf'),
@@ -191,8 +105,23 @@ export const GET: APIRoute = async ({ params }) => {
         },
         children: [
           dotTexture(),
-          bottomStripe(),
-          leftRule(),
+          // Thin red edge along the boundary between the left panel
+          // and the right artwork — the only red shape on the card.
+          {
+            type: 'div',
+            props: {
+              style: {
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                right: 430,
+                width: 1,
+                backgroundColor: 'rgba(217,35,35,0.55)',
+              },
+            },
+          },
+          // Left panel — laid out like a fragment of the note detail
+          // page: eyebrow, dominant title, excerpt, site-name footer.
           {
             type: 'div',
             props: {
@@ -200,18 +129,17 @@ export const GET: APIRoute = async ({ params }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 flex: 1,
-                padding: '54px 48px 56px 88px',
+                padding: '64px 72px 56px 72px',
                 position: 'relative',
               },
               children: [
-                // Eyebrow row — // NOTES  left, date stamp right.
+                // // TAG — same primitive as .eyebrow on the site.
                 {
                   type: 'div',
                   props: {
                     style: {
                       display: 'flex',
                       flexDirection: 'row',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
                     },
                     children: [
@@ -219,295 +147,93 @@ export const GET: APIRoute = async ({ params }) => {
                         type: 'div',
                         props: {
                           style: {
-                            display: 'flex',
-                            flexDirection: 'row',
-                            alignItems: 'center',
+                            color: RED,
+                            fontSize: 18,
+                            fontWeight: 700,
+                            marginRight: 8,
                           },
-                          children: [
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  color: RED,
-                                  fontSize: 22,
-                                  fontWeight: 700,
-                                  marginRight: 6,
-                                },
-                                children: '//',
-                              },
-                            },
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  color: WHITE,
-                                  fontSize: 22,
-                                  fontWeight: 700,
-                                  letterSpacing: 5,
-                                },
-                                children: tag,
-                              },
-                            },
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  width: 28,
-                                  height: 2,
-                                  backgroundColor: RED,
-                                  marginLeft: 14,
-                                  transform: 'skewX(-30deg)',
-                                },
-                              },
-                            },
-                          ],
+                          children: '//',
                         },
                       },
                       {
                         type: 'div',
                         props: {
                           style: {
-                            display: 'flex',
-                            color: GRAY,
-                            fontSize: 20,
+                            color: WHITE,
+                            fontSize: 18,
                             fontWeight: 700,
                             letterSpacing: 4,
                           },
-                          children: stamp,
+                          children: tag,
                         },
                       },
                     ],
                   },
                 },
-                // Title block — asymmetric. Line 1 sits tight to the
-                // left rule; line 2 is offset right and heavier, with
-                // a red slab clipped past the right edge as the
-                // visual punctuation of the card.
+                // Title — the anchor. Left-aligned, large, single block.
+                // The display font on the site goes up to ~150px on the
+                // detail page; here we set it where the longest word
+                // still fits the panel with comfortable margins.
                 {
                   type: 'div',
                   props: {
                     style: {
+                      marginTop: 56,
+                      maxWidth: 600,
+                      color: WHITE,
+                      fontSize: 96,
+                      fontWeight: 700,
+                      lineHeight: 0.96,
+                      letterSpacing: 1,
+                      textTransform: 'uppercase',
                       display: 'flex',
-                      flexDirection: 'column',
-                      marginTop: 60,
-                      position: 'relative',
                     },
-                    children: [
-                      line1
-                        ? {
-                            type: 'div',
-                            props: {
-                              style: {
-                                color: WHITE,
-                                fontSize: 70,
-                                fontWeight: 700,
-                                lineHeight: 0.95,
-                                letterSpacing: 1,
-                                textTransform: 'uppercase',
-                                whiteSpace: 'nowrap',
-                              },
-                              children: line1,
-                            },
-                          }
-                        : null,
-                      {
-                        type: 'div',
-                        props: {
-                          style: {
-                            display: 'flex',
-                            flexDirection: 'row',
-                            alignItems: 'flex-start',
-                            marginTop: 4,
-                            marginLeft: line1 ? 110 : 0,
-                          },
-                          children: [
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  color: WHITE,
-                                  fontSize: 92,
-                                  fontWeight: 700,
-                                  lineHeight: 0.92,
-                                  letterSpacing: 1,
-                                  textTransform: 'uppercase',
-                                  whiteSpace: 'nowrap',
-                                },
-                                children: line2,
-                              },
-                            },
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  width: 56,
-                                  height: 86,
-                                  backgroundColor: RED,
-                                  marginLeft: -4,
-                                  marginTop: 6,
-                                  transform: 'translateX(28px)',
-                                },
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ].filter(Boolean),
+                    children: title,
                   },
                 },
-                // Excerpt — muted, tight, supporting copy.
+                // Excerpt — the same muted reading copy the site uses
+                // for lede paragraphs. Generous max-width so it breathes.
                 {
                   type: 'div',
                   props: {
                     style: {
-                      marginTop: 32,
-                      marginLeft: 8,
-                      maxWidth: 520,
+                      marginTop: 40,
+                      maxWidth: 560,
                       color: MUTED,
-                      fontSize: 22,
+                      fontSize: 24,
                       fontWeight: 400,
-                      lineHeight: 1.45,
-                      overflow: 'hidden',
+                      lineHeight: 1.55,
                       display: 'flex',
                     },
                     children: excerpt,
                   },
                 },
-                // Bottom metadata — route indicator on the left,
-                // brand mark on the right, separated by a thin
-                // horizontal rule that runs the panel.
+                // Site-name footer — tiny, far from the title, the only
+                // element that anchors the bottom of the panel.
                 {
                   type: 'div',
                   props: {
                     style: {
                       marginTop: 'auto',
+                      color: GRAY,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      letterSpacing: 4,
                       display: 'flex',
-                      flexDirection: 'column',
                     },
-                    children: [
-                      {
-                        type: 'div',
-                        props: {
-                          style: {
-                            height: 1,
-                            backgroundColor: 'rgba(255,255,255,0.18)',
-                            marginBottom: 16,
-                          },
-                        },
-                      },
-                      {
-                        type: 'div',
-                        props: {
-                          style: {
-                            display: 'flex',
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          },
-                          children: [
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  display: 'flex',
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  color: GRAY,
-                                  fontSize: 18,
-                                  fontWeight: 700,
-                                  letterSpacing: 4,
-                                },
-                                children: [
-                                  {
-                                    type: 'div',
-                                    props: {
-                                      style: { color: WHITE, marginRight: 12 },
-                                      children: tag,
-                                    },
-                                  },
-                                  {
-                                    type: 'div',
-                                    props: { style: { color: RED }, children: '/' },
-                                  },
-                                  {
-                                    type: 'div',
-                                    props: {
-                                      style: { marginLeft: 12, color: WHITE },
-                                      children: route,
-                                    },
-                                  },
-                                ],
-                              },
-                            },
-                            {
-                              type: 'div',
-                              props: {
-                                style: {
-                                  display: 'flex',
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                },
-                                children: [
-                                  {
-                                    type: 'div',
-                                    props: {
-                                      style: {
-                                        color: WHITE,
-                                        fontSize: 20,
-                                        fontWeight: 700,
-                                        letterSpacing: 3,
-                                      },
-                                      children: 'RAVEDEPRINZ',
-                                    },
-                                  },
-                                  {
-                                    type: 'div',
-                                    props: {
-                                      style: {
-                                        width: 14,
-                                        height: 2,
-                                        backgroundColor: RED,
-                                        marginLeft: 12,
-                                        marginRight: 12,
-                                        transform: 'skewX(-30deg)',
-                                      },
-                                    },
-                                  },
-                                  {
-                                    type: 'div',
-                                    props: {
-                                      style: {
-                                        color: GRAY,
-                                        fontSize: 16,
-                                        fontWeight: 700,
-                                        letterSpacing: 4,
-                                      },
-                                      children: 'PERSONAL ARCHIVE',
-                                    },
-                                  },
-                                ],
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ],
+                    children: 'RAVEDEPRINZ.ME  /  NOTES',
                   },
                 },
               ],
             },
           },
+          // Right panel — cover artwork, untouched.
           ...(cover
             ? [
                 {
                   type: 'div',
                   props: {
-                    style: {
-                      display: 'flex',
-                      width: 430,
-                      position: 'relative',
-                      borderLeft: `4px solid ${RED}`,
-                    },
+                    style: { display: 'flex', width: 430, position: 'relative' },
                     children: [
                       {
                         type: 'img',
