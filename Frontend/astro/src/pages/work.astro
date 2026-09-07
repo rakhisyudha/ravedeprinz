@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { fetchWork } from '../lib/cms';
+import { work as fallbackWork } from '../data/content';
+
+export const prerender = false;
+
+// Live entries when the CMS answers; otherwise the intentional static
+// fallback below.
+const liveWork = await fetchWork();
+const work =
+  liveWork?.work ??
+  fallbackWork.map((w) => ({
+    role: w.role,
+    company: w.company,
+    location: w.location ?? '',
+    date_label: w.date,
+    description: w.desc,
+    stack: w.stack,
+    company_url: w.companyLink ?? null,
+  }));
+---
+<Base title="WORK" currentPath="/work">
+  <PageHead index="FIELD RECORD / 003" title="WORK" intro="A record of the teams and responsibilities that shaped how I work. Not a résumé. A map of decisions and outcomes.">
+    <section class="record-list">
+      {work.map((item, index) => (
+        <article class="record lift">
+          <span class="record-number">0{index + 1}<small>{item.date}</small></span>
+          <div>
+            <p class="eyebrow">{item.company}{item.location ? ` / ${item.location}` : ''}</p>
+            <h2>{item.role}</h2>
+            <p>{item.desc}</p>
+            <p class="metadata">{item.stack}</p>
+          </div>
+          <aside><span>CONTRIBUTION</span><p>Built the structure behind a more dependable daily workflow.</p></aside>
+        </article>
+      ))}
+    </section>
+  </PageHead>
+</Base>

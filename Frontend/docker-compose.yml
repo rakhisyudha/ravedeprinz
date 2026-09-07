@@ -20,6 +20,17 @@ services:
     volumes:
       - ravedeprinz_uploads:/app/public/uploads
 
+  astro:
+    build:
+      context: ./astro
+      dockerfile: Dockerfile
+    ports:
+      - "3100:3100"
+    environment:
+      PORT: 3100
+      HOST: 0.0.0.0
+    restart: unless-stopped
+
 networks:
   webnet:
     name: webnet

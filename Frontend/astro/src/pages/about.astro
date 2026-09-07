@@ -1,0 +1,73 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { fetchAbout, fetchWork } from '../lib/cms';
+import { aboutContent as fallbackContent } from '../data/site';
+import { education as fallbackEducation, skills as fallbackSkills } from '../data/content';
+import { portraitImage } from '../data/site';
+
+export const prerender = false;
+
+// Live content when the CMS answers; otherwise the intentional static
+// fallbacks below. `live* === null` means CMS-unreachable.
+const liveAbout = await fetchAbout();
+const liveWork = await fetchWork();
+const content = liveAbout?.content ?? fallbackContent;
+const skillList =
+  liveAbout?.skills ??
+  fallbackSkills.flatMap((group) => group.skills.map((skill_name) => ({ category: group.category, skill_name })));
+const educationList =
+  liveWork?.education ??
+  fallbackEducation.map((e) => ({
+    title: e.type,
+    institution: e.place,
+    date_label: e.time,
+    description: e.info,
+  }));
+const grouped: Record<string, string[]> = {};
+for (const item of skillList) {
+  (grouped[item.category] ??= []).push(item.skill_name);
+}
+// CMS image wins when present; the local portrait is only the default.
+// Mirrors the original `content?.portrait_url || profileImage` behavior.
+const portrait = content.portrait_url?.trim() || portraitImage;
+---
+<Base title="ABOUT" currentPath="/about">
+  <PageHead index={content.eyebrow} title="ABOUT" intro="The person behind the systems. More interested in a good question than a polished job title.">
+    <section class="about-grid">
+      <article class="panel cut about-story p-6 sm:p-10">
+        <div class="about-portrait about-portrait-sticker">
+          <img src={portrait} alt="Rakhis de Yudha" width="260" height="275" />
+          <span class="about-photo-label">RDP / 001</span>
+          <span class="about-photo-badge">BUILDING</span>
+        </div>
+        <p class="eyebrow">01 / THE SHORT VERSION</p>
+        <p class="about-quote">{content.quote} <span>{content.quote_accent}</span> and built to last.</p>
+        <p>{content.paragraph_one}</p>
+        <p>{content.paragraph_two}</p>
+      </article>
+      <aside class="panel cut p-6 sm:p-8">
+        <p class="eyebrow mb-7">02 / WORKING MATERIALS</p>
+        {Object.entries(grouped).map(([category, list]) => (
+          <div class="skill-group"><span>{category}</span><p>{list.join(' / ')}</p></div>
+        ))}
+      </aside>
+    </section>
+    <style>
+      /* next/image `fill` equivalence: the portrait artboards exactly to
+         its 220x275 frame. A plain in-flow <img> would size to its
+         width/height attributes, grow the float box, and reflow every
+         line of the statement and paragraphs around it. */
+      .about-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; }
+    </style>
+    <section class="about-timeline">
+      <p class="eyebrow">03 / WHERE I CAME FROM</p>
+      {educationList.map((item, index) => (
+        <article class="record">
+          <span class="record-number">0{index + 1}<small>{item.date_label}</small></span>
+          <div><p class="eyebrow">{item.institution}</p><h2>{item.title}</h2><p>{item.description}</p></div>
+        </article>
+      ))}
+    </section>
+  </PageHead>
+</Base>

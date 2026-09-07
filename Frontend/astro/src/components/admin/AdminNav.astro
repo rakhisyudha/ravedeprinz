@@ -1,0 +1,28 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '/admin' } = Astro.props;
+
+const adminNav = [
+  ['/admin', 'DASHBOARD'],
+  ['/admin/home', 'HOME'],
+  ['/admin/about', 'ABOUT'],
+  ['/admin/work', 'WORK'],
+  ['/admin/projects', 'PROJECTS'],
+  ['/admin/notes', 'NOTES'],
+  ['/admin/now', 'NOW'],
+  ['/admin/users', 'USERS'],
+] as const;
+---
+<nav class="admin-nav" aria-label="CMS navigation">
+  {adminNav.map(([href, label]) => {
+    const active = href === '/admin' ? currentPath === '/admin' : currentPath === href || currentPath.startsWith(href + '/');
+    return (
+      <a href={href} class={`admin-nav-link touch-target${active ? ' is-active' : ''}`}>
+        {label}
+      </a>
+    );
+  })}
+</nav>

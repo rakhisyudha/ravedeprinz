@@ -1,0 +1,57 @@
+---
+import Base from '../layouts/Base.astro';
+import HudPanel from '../components/HudPanel.svelte';
+import { fetchHome } from '../lib/cms';
+import { homeContent as fallbackContent, navigation as fallbackNav } from '../data/site';
+
+// Home is CMS-backed. Render it per request so admin edits are visible on
+// the next reload without rebuilding the Astro server.
+export const prerender = false;
+
+// Live home content when the CMS answers; otherwise the intentional
+// static fallback below. `liveHome === null` means CMS-unreachable.
+const liveHome = await fetchHome();
+const content = liveHome?.content ?? fallbackContent;
+const navigation = liveHome?.navigation ?? fallbackNav;
+---
+<Base title="Rakhis de Yudha // Personal archive" currentPath="/">
+  <main class="home-page">
+    <div class="home-layout">
+      <section class="home-copy">
+        <p class="eyebrow"><span class="slash">//</span> {content.archive_label} / {content.archive_number}</p>
+        <h1 class="display">{content.headline_line_one}<br /><span class="accent-word">{content.headline_line_two}</span>{content.headline_line_three}<span class="accent-dot">{content.headline_period}</span></h1>
+        <div class="headline-meta"><span>{content.headline_meta}</span><i /></div>
+        <p class="lede">{content.intro}</p>
+        <a href={content.cta_url} class="home-cta">{content.cta_label} <b>↗</b></a>
+      </section>
+      <aside class="profile-column">
+        <div class="hud-only">
+          <HudPanel
+            client:visible
+            years={content.years_building}
+            label={content.hud_label}
+            noiseTop={content.hud_noise_top}
+            noiseBottom={content.hud_noise_bottom}
+          />
+        </div>
+        <div class="quick-links">
+          {navigation.slice(-2).reverse().map((item) => (
+            <a href={item.href}><span>{item.display_number}</span> {item.label.toUpperCase()}</a>
+          ))}
+        </div>
+      </aside>
+    </div>
+    <nav class="home-rule" aria-label="Explore the archive">
+      <p class="home-rule-label">ARCHIVE INDEX <span>// SELECT A RECORD</span></p>
+      <div class="home-records">
+        {navigation.map((item, index) => (
+          <a href={item.href} class={`home-record home-record-${index}`}>
+            <span class="home-record-number">{item.display_number}</span>
+            <span class="home-record-copy"><b>{item.label}</b><small>{item.description}</small></span>
+            <span class="home-record-arrow">↗</span>
+          </a>
+        ))}
+      </div>
+    </nav>
+  </main>
+</Base>

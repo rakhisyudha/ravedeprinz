@@ -1,0 +1,67 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { fetchProjects } from '../lib/cms';
+import { projects as fallbackProjects } from '../data/content';
+import { projectImages, slugify } from '../data/site';
+
+export const prerender = false;
+
+// Live projects when the CMS answers; otherwise the intentional static
+// fallback below, normalized to the same shape.
+const liveProjects = await fetchProjects();
+const projects =
+  liveProjects?.projects ??
+  fallbackProjects.map((p) => ({
+    title: p.title,
+    slug: slugify(p.title),
+    description: p.desc,
+    year: Number(p.year) || 0,
+    status: p.type,
+    deployment_status: (p.title === 'Web Auction' ? 'NOT_DEPLOYED' : 'DEPLOYED') as 'DEPLOYED' | 'NOT_DEPLOYED',
+    stack: p.stack,
+    live_url: p.link ?? null,
+    source_url: p.github ?? null,
+    image_url: null as string | null,
+    featured: false,
+  }));
+
+const statusClass = { FINISHED: 'status-shipped', 'IN PROGRESS': 'status-in-progress', SHELVED: 'status' } as const;
+const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
+---
+<Base title="PROJECTS" currentPath="/projects">
+  <PageHead index="BUILD LOG / 004" title="PROJECTS" intro="Things made while learning how to make better software. Finished, experimental, paused, and still worth remembering.">
+    <section class="record-list">
+      {projects.map((project, index) => {
+        const slug = project.slug?.trim() || slugify(project.title);
+        const image = project.image_url || projectImages[slug];
+        const deployed = project.title !== 'Web Auction';
+        const stickerKind = stickerKinds[index % stickerKinds.length];
+        return (
+          <article class="record project-record lift">
+            <span class="record-number">0{index + 1}<small>{project.year}</small></span>
+            <div class="project-content">
+              <div class="project-media">
+                <div class={`project-frame project-card-${index % 4}`}>
+                  <div class="project-chrome" aria-hidden="true"><i /><i /><i /></div>
+                  {image && <div class="project-image"><img src={image} alt={`${project.title} preview`} loading="lazy" /></div>}
+                </div>
+                <span class={`project-sticker status sticker-${stickerKind} sticker-status-slot ${statusClass[project.type]}`}>{project.type}</span>
+                <span class={`deploy-sticker deploy-${stickerKinds[(index + 1) % stickerKinds.length]} deploy-slot ${deployed ? '' : 'deploy-sticker-pending'}`}>{deployed ? 'DEPLOYED' : 'NOT DEPLOYED'}</span>
+                <span class={`project-index index-slot index-style-${index % 4}`}>0{index + 1} / {project.year}</span>
+              </div>
+              <h2>{project.title}</h2>
+              <p>{project.desc}</p>
+              <p class="metadata">{project.stack}</p>
+              <div class="project-links">
+                {project.link && <a href={project.link} target="_blank" rel="noreferrer">Live ↗</a>}
+                {project.github && <a href={project.github} target="_blank" rel="noreferrer">Source ↗</a>}
+              </div>
+            </div>
+            <aside><span>ARCHIVE NOTE</span><p>{project.type === 'SHELVED' ? 'Not finished. Still useful.' : 'A record of making, testing, and learning.'}</p></aside>
+          </article>
+        );
+      })}
+    </section>
+  </PageHead>
+</Base>
