@@ -28,8 +28,12 @@ services:
       - webnet
 
 networks:
+  # Backend's compose file owns webnet; the frontend project joins it
+  # without trying to recreate. This is required because the two compose
+  # projects run independently and Docker scopes networks per-project.
   webnet:
     name: webnet
+    external: true
 
 volumes:
   # Superseded by Backend's ravedeprinz_uploads_v2 volume. Retained (with
