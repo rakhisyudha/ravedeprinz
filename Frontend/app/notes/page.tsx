@@ -1,8 +1,16 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Page } from '../../components/Page';
 import { getNotesContent } from '../../lib/cms';
 import { readingMinutes } from '../../lib/readingTime';
+import { getSiteUrl } from '../../lib/seo';
+
+export const metadata: Metadata = {
+  title: 'NOTES',
+  description: 'Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose.',
+  alternates: { canonical: `${getSiteUrl()}/notes` },
+};
 
 export default async function Notes() {
   const { notes } = await getNotesContent();
@@ -11,7 +19,7 @@ export default async function Notes() {
     <Page index="TRANSMISSIONS / 005" title="NOTES" intro="Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose.">
       <section className="notes-list">
         {notes.map((note) => {
-          const href = `/notes/${note.id ?? note.slug}`;
+          const href = `/notes/${note.slug?.trim() || note.id}`;
           const date = note.published_at ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase() : '';
           const minutes = readingMinutes(note.body ?? '', note.image_url as string | null);
           return (
@@ -25,7 +33,7 @@ export default async function Notes() {
                 </div>
                 {note.image_url && (
                   <div className="note-thumb">
-                    <Image src={note.image_url} alt={note.title} fill sizes="120px" />
+                    <Image src={note.image_url} alt="" fill sizes="(max-width:700px) 112px, 160px" />
                   </div>
                 )}
               </Link>

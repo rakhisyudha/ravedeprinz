@@ -103,6 +103,7 @@ export type NoteItem = {
   subtitle?: string | null;
   image_url?: string | null;
   published_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type NotesContent = { notes: NoteItem[] };

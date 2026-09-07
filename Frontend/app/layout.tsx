@@ -2,7 +2,15 @@ import './globals.css';
 import { Shell } from '../components/Shell';
 import { getSiteSettings } from '../lib/cms';
 
-export const metadata = { title: 'Rakhis de Yudha // Personal archive', description: 'A personal archive of work, projects, notes, and what is happening now.' };
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ravedeprinz.me').replace(/\/$/, '');
+
+export const metadata = {
+  metadataBase: new URL(siteUrl),
+  title: { default: 'Rakhis de Yudha // Personal archive', template: '%s // ravedeprinz' },
+  description: 'A personal archive of work, projects, notes, and what is happening now.',
+  openGraph: { type: 'website', siteName: 'ravedeprinz' },
+  twitter: { card: 'summary' },
+};
 
 export const viewport = {
   width: 'device-width',

@@ -3,6 +3,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getNoteById } from '../../../lib/cms';
 import { readingMinutes } from '../../../lib/readingTime';
+import {
+  absolutizeUpload,
+  cleanDescription,
+  getNoteCanonicalUrl,
+  getNoteOgImageUrl,
+  getSiteUrl,
+} from '../../../lib/seo';
 import ReadingProgress from './ReadingProgress';
 import ShareBar from './ShareBar';
 
@@ -64,29 +71,35 @@ function NoteBody({ body }: { body: string }) {
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const note = await getNoteById(id);
-  if (!note) return { title: 'Note not found' };
-  const rawDesc = note.subtitle || note.body?.replace(/[#>*_`~\[\]()\-!]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) || '';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ravedeprinz.me';
-  const url = `${siteUrl.replace(/\/$/, '')}/notes/${note.id ?? id}`;
-  const rawImage = note.image_url ?? null;
-  const image = rawImage ? (rawImage.startsWith('http') ? rawImage : `${siteUrl.replace(/\/$/, '')}${rawImage}`) : null;
+  if (!note) return { title: { absolute: 'Note not found // ravedeprinz' } };
+
+  const url = getNoteCanonicalUrl(note, id);
+  const description = cleanDescription(note.body, note.subtitle);
+  const ogImage = getNoteOgImageUrl(note, id);
+  const author = note.author?.trim() || 'Rakhis de Yudha';
 
   return {
-    title: `${note.title} // ravedeprinz`,
-    description: rawDesc,
+    title: { absolute: `${note.title} // ravedeprinz` },
+    description,
+    alternates: { canonical: url },
+    authors: [{ name: author, url: getSiteUrl() }],
     openGraph: {
       title: note.title,
-      description: rawDesc,
+      description,
       type: 'article',
       url,
-      images: image ? [{ url: image, width: 1200, height: 630, alt: note.title }] : undefined,
       siteName: 'ravedeprinz',
+      publishedTime: note.published_at ?? undefined,
+      modifiedTime: note.updated_at ?? note.published_at ?? undefined,
+      authors: [author],
+      tags: note.tag ? [note.tag] : undefined,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: `${note.title} // ravedeprinz` }],
     },
     twitter: {
-      card: image ? 'summary_large_image' : 'summary',
+      card: 'summary_large_image',
       title: note.title,
-      description: rawDesc,
-      images: image ? [image] : undefined,
+      description,
+      images: [ogImage],
     },
   };
 }
@@ -100,10 +113,27 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
   const date = note.published_at
     ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
     : '';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ravedeprinz.me';
-  const href = `/notes/${note.id ?? note.slug}`;
-  const absoluteHref = `${siteUrl.replace(/\/$/, '')}${href}`;
-  const absoluteImage = note.image_url ? (note.image_url.startsWith('http') ? note.image_url : `${siteUrl.replace(/\/$/, '')}${note.image_url}`) : null;
+  const siteUrl = getSiteUrl();
+  const url = getNoteCanonicalUrl(note, id);
+  const href = new URL(url).pathname;
+  const absoluteImage = absolutizeUpload(note.image_url);
+  const description = cleanDescription(note.body, note.subtitle);
+  const author = note.author?.trim() || 'Rakhis de Yudha';
+  const coverAlt = note.subtitle?.trim() || `Cover artwork for “${note.title}”`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: note.title,
+    description,
+    image: [getNoteOgImageUrl(note, id)],
+    datePublished: note.published_at ?? undefined,
+    dateModified: note.updated_at ?? note.published_at ?? undefined,
+    author: { '@type': 'Person', name: author, url: siteUrl },
+    publisher: { '@type': 'Organization', name: 'ravedeprinz', url: siteUrl },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    url,
+  };
 
   return (
     <>
@@ -132,18 +162,19 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
           </div>
           {note.image_url && (
             <div className="note-article-image">
-              <Image src={note.image_url} alt={note.title} fill sizes="(max-width: 768px) 100vw, 700px" />
+              <Image src={note.image_url} alt={coverAlt} fill sizes="(max-width: 768px) 100vw, 700px" />
             </div>
           )}
         </header>
 
         <NoteBody body={note.body ?? ''} />
 
-        {/* Preview as it appears when shared — P5 card with image */}
+        {/* Archive card: on-page presentation in the site's own design.
+            Real social previews come from the generated OG image, not this. */}
         <div className="note-preview cut">
           <div className="note-preview-image">
             {absoluteImage ? (
-              <Image src={note.image_url!} alt={note.title} fill sizes="(max-width: 768px) 100vw, 400px" />
+              <Image src={note.image_url!} alt="" fill sizes="(max-width: 768px) 100vw, 400px" />
             ) : (
               <div className="note-preview-placeholder">R</div>
             )}
@@ -151,12 +182,17 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
           <div className="note-preview-body">
             <p className="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
             <p className="note-preview-title">{note.title}</p>
-            <p className="note-preview-desc">{note.subtitle || note.body?.slice(0, 120)}</p>
+            <p className="note-preview-desc">{cleanDescription(note.body, note.subtitle, 120)}</p>
             <span className="note-preview-url">ravedeprinz.me{href}</span>
           </div>
         </div>
 
-        <ShareBar url={absoluteHref} title={note.title} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+
+        <ShareBar url={url} title={note.title} description={description} />
 
         <footer className="note-article-footer">
           <span className="note-pill"># {note.tag}</span>

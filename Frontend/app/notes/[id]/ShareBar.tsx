@@ -1,28 +1,44 @@
 'use client';
 
 import { useState } from 'react';
+import { getShareUrls } from '../../../lib/seo';
 
-export default function ShareBar({ url, title }: { url: string; title: string }) {
+export default function ShareBar({ url, title, description }: { url: string; title: string; description: string }) {
   const [copied, setCopied] = useState(false);
 
-  async function handleShare() {
-    const shareUrl = url;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url: shareUrl });
-        return;
-      } catch {}
-    }
-    await navigator.clipboard.writeText(shareUrl);
+  async function flashCopied() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleShare() {
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({ title, text: description || title, url });
+        return;
+      } catch (error) {
+        // User cancellation is not an error; anything else falls back to copy.
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      await flashCopied();
+    } catch {
+      /* clipboard unavailable — the copy button remains */
+    }
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      await flashCopied();
+    } catch {
+      /* clipboard unavailable — leave the label alone */
+    }
   }
+
+  const targets = getShareUrls({ title, url, description });
 
   return (
     <div className="note-share">
@@ -31,20 +47,24 @@ export default function ShareBar({ url, title }: { url: string; title: string })
         <i />
       </div>
       <div className="note-share-actions">
-        <button type="button" className="note-share-btn cut-small touch-target" onClick={handleShare}>
+        <button type="button" className="note-share-btn cut-small touch-target" onClick={handleShare} aria-label="Share this note">
           {copied ? 'COPIED ✓' : 'SHARE ↗'}
         </button>
-        <button type="button" className="note-share-copy touch-target" onClick={handleCopy}>
-          COPY LINK
+        {targets.map((target) => (
+          <a
+            key={target.label}
+            href={target.href}
+            target={target.external ? '_blank' : undefined}
+            rel={target.external ? 'noopener noreferrer' : undefined}
+            className="note-share-copy touch-target"
+            aria-label={`Share on ${target.label === 'FB' ? 'Facebook' : target.label === 'IN' ? 'LinkedIn' : target.label === 'WA' ? 'WhatsApp' : target.label.charAt(0) + target.label.slice(1).toLowerCase()}`}
+          >
+            {target.label}
+          </a>
+        ))}
+        <button type="button" className="note-share-copy touch-target" onClick={handleCopy} aria-label="Copy link to this note">
+          {copied ? 'COPIED ✓' : 'COPY'}
         </button>
-        <a
-          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="note-share-copy touch-target"
-        >
-          X / TWITTER ↗
-        </a>
       </div>
     </div>
   );
