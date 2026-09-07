@@ -46,19 +46,19 @@ const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
                   <div class="project-chrome" aria-hidden="true"><i /><i /><i /></div>
                   {image && <div class="project-image"><img src={image} alt={`${project.title} preview`} loading="lazy" /></div>}
                 </div>
-                <span class={`project-sticker status sticker-${stickerKind} sticker-status-slot ${statusClass[project.type]}`}>{project.type}</span>
+                <span class={`project-sticker status sticker-${stickerKind} sticker-status-slot ${statusClass[project.status]}`}>{project.status}</span>
                 <span class={`deploy-sticker deploy-${stickerKinds[(index + 1) % stickerKinds.length]} deploy-slot ${deployed ? '' : 'deploy-sticker-pending'}`}>{deployed ? 'DEPLOYED' : 'NOT DEPLOYED'}</span>
                 <span class={`project-index index-slot index-style-${index % 4}`}>0{index + 1} / {project.year}</span>
               </div>
               <h2>{project.title}</h2>
-              <p>{project.desc}</p>
+              <p>{project.description}</p>
               <p class="metadata">{project.stack}</p>
               <div class="project-links">
-                {project.link && <a href={project.link} target="_blank" rel="noreferrer">Live ↗</a>}
-                {project.github && <a href={project.github} target="_blank" rel="noreferrer">Source ↗</a>}
+                {project.live_url && <a href={project.live_url} target="_blank" rel="noreferrer">Live ↗</a>}
+                {project.source_url && <a href={project.source_url} target="_blank" rel="noreferrer">Source ↗</a>}
               </div>
             </div>
-            <aside><span>ARCHIVE NOTE</span><p>{project.type === 'SHELVED' ? 'Not finished. Still useful.' : 'A record of making, testing, and learning.'}</p></aside>
+            <aside><span>ARCHIVE NOTE</span><p>{project.status === 'SHELVED' ? 'Not finished. Still useful.' : 'A record of making, testing, and learning.'}</p></aside>
           </article>
         );
       })}

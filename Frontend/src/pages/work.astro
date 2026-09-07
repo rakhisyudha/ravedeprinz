@@ -26,11 +26,11 @@ const work =
     <section class="record-list">
       {work.map((item, index) => (
         <article class="record lift">
-          <span class="record-number">0{index + 1}<small>{item.date}</small></span>
+          <span class="record-number">0{index + 1}<small>{item.date_label}</small></span>
           <div>
             <p class="eyebrow">{item.company}{item.location ? ` / ${item.location}` : ''}</p>
             <h2>{item.role}</h2>
-            <p>{item.desc}</p>
+            <p>{item.description}</p>
             <p class="metadata">{item.stack}</p>
           </div>
           <aside><span>CONTRIBUTION</span><p>Built the structure behind a more dependable daily workflow.</p></aside>
