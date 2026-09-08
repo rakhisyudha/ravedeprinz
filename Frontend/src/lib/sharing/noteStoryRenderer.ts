@@ -5,12 +5,15 @@
 // uses — no new dependencies.
 //
 // Compositional principle (carried over from opengraph-image.ts and the
-// .note-preview on-page card): the cover artwork fills the canvas and is
-// darkened for readable foreground; the white reading card sits in the
-// lower portion of the frame, asymmetrically clipped on the top-left;
-// the title is the anchor; the excerpt breathes underneath; the site
-// name closes the bottom. Red is a single structural accent (the title
-// stripe), the rest of the composition is type and whitespace.
+// .note-preview on-page card): the cover artwork fills the entire 1080x1920
+// frame, blurred and darkened for depth, and a compact white reading card
+// sits in the middle of the canvas with real quiet cover art visible above
+// and below it. The card hugs its content (no oversized footer gap) and
+// always stops well before the bottom of the canvas, leaving a clean strip
+// of background visible underneath so the user can place Instagram's native
+// Link sticker in that quiet zone (the image itself is intentionally NOT
+// clickable inside Instagram — that is the user's manual step, like
+// Medium's flow).
 
 export type NoteShareData = {
   title: string;
@@ -23,43 +26,52 @@ export type NoteShareData = {
   siteName?: string | null;
 };
 
-// The brand palette. Mirrors --black/--red/--dark-red/--gray/--white in
-// global.css. Defined here as constants because Canvas 2D cannot read
-// CSS custom properties.
+// Brand palette. Mirrors --black/--red/--dark-red/--gray/--white in
+// global.css. Canvas 2D cannot read CSS custom properties.
 const PALETTE = {
   black: '#0d0d0d',
   red: '#d92323',
   darkRed: '#732424',
   gray: '#7b7b7b',
   white: '#ffffff',
-  muted: '#a8a8a8',
 } as const;
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-// The composition: the cover artwork fills the entire 1080x1920 frame
-// under a flat dark wash, and the white reading card occupies the
-// lower ~72% of the canvas, leaving the upper ~28% as a "artwork
-// slab" where the cropped cover reads as the article's atmosphere.
-// Asymmetric in the sense that the card's top-left corner is clipped
-// (the .cut vocabulary from global.css) so the card slides under the
-// wash rather than floating flat.
-const CARD_HORIZONTAL_PADDING = 56;
-const CARD_TOP_PADDING = 96;
-const CARD_BOTTOM_PADDING = 88;
-const CARD_TOP_OFFSET = Math.round(HEIGHT * 0.28); // y where the card's flat top sits (background visible above)
-const CARD_BOTTOM_PADDING_VERTICAL = 56;
 
-// Typography. Rodin Pro M/B are the only OTFs the project self-hosts
-// and therefore the only webfonts we can reliably embed in the canvas.
-// Space Grotesk isn't self-hosted anywhere in the project, so we let
-// it fall through to system sans (same pattern the OG card uses for
-// body copy and the way .mono already works in global.css).
+// The composition math:
+//   - The cover artwork fills the entire canvas (blurred + darkened).
+//   - The white card is a centered, asymmetric, content-sized block.
+//   - The card's bottom edge is anchored at max HEIGHT * 0.62 so there
+//     is always at least ~38% (~730px) of clean background visible
+//     beneath the card for the Instagram Link sticker zone.
+//   - The card's top edge floats below HEIGHT * 0.18 so the cover art
+//     also breathes above the card.
+//   - cardWidth is fixed; cardHeight varies with content but is clamped
+//     between a min and a max so a long title can never push the card
+//     into the Link sticker area.
+const CARD_SIDE_PADDING = 64;
+const CARD_WIDTH = WIDTH - CARD_SIDE_PADDING * 2;
+const CARD_TOP_MIN = Math.round(HEIGHT * 0.18);
+const CARD_BOTTOM_MAX = Math.round(HEIGHT * 0.62); // hard cap so Link sticker zone is preserved
+const CARD_CONTENT_PADDING_TOP = 56;
+const CARD_CONTENT_PADDING_BOTTOM = 40;
+const CARD_CONTENT_PADDING_X = 48;
+const CARD_MIN_HEIGHT = 360; // tiny titles still get a meaningful card
+const CARD_MAX_HEIGHT = CARD_BOTTOM_MAX - CARD_TOP_MIN;
+
+const COVER_BLUR_PX = 28; // creates depth without obscuring the artwork beyond recognition
+const COVER_DARKEN_TOP = 0.55; // upper slab (above the card)
+const COVER_DARKEN_MID = 0.30; // the card-horizontal band (still visible behind the card edges / below it)
+const COVER_DARKEN_BOTTOM = 0.45; // the Link-sticker zone — quieter so the eye rests, but still moody
+
+// Typography. Rodin Pro M/B are the only OTFs the project self-hosts and
+// therefore the only webfonts we can reliably embed in the canvas.
+// Space Grotesk falls through to system sans (same pattern the OG card
+// and the existing .mono class use).
 const FONT_DISPLAY_BOLD = `'Rodin Pro', 'Space Grotesk', system-ui, sans-serif`;
 const FONT_SANS = `'Space Grotesk', system-ui, sans-serif`;
 
-// Font URLs available same-origin. Reused by both the page chrome
-// (global.css @font-face) and this renderer.
 const FONT_URLS = {
   regular: '/fonts/FOT-Rodin-Pro-M.otf',
   bold: '/fonts/FOT-Rodin-Pro-B.otf',
@@ -88,8 +100,8 @@ async function loadBrandFonts(): Promise<void> {
         }),
       );
     } catch {
-      // FontFace API unavailable (very old browsers). The renderer
-      // silently falls through to the system sans stack.
+      // FontFace API unavailable (very old browsers). Silently fall
+      // through to the system sans stack.
     }
   }
   if (tasks.length) {
@@ -102,11 +114,11 @@ async function loadBrandFonts(): Promise<void> {
   }
 }
 
-// Same-origin fetch for the cover. Going through fetch + Blob + createImageBitmap
-// avoids the canvas taint that <img> crosses origin with. In dev the
-// Astro proxy serves /uploads/* without CORS headers so <img crossorigin>
-// would fail — fetch() does not, because Blob/ImageBitmap is not a CORS-
-// sensitive path.
+// Same-origin fetch for the cover. Going through fetch + Blob +
+// createImageBitmap avoids the canvas taint that <img> crosses origin
+// with. In dev the Astro proxy serves /uploads/* without CORS headers
+// so <img crossorigin> would fail — fetch() does not, because Blob +
+// ImageBitmap is not a CORS-sensitive path.
 async function loadCoverBitmap(url: string | null | undefined): Promise<ImageBitmap | null> {
   if (!url) return null;
   if (typeof fetch === 'undefined') return null;
@@ -121,11 +133,12 @@ async function loadCoverBitmap(url: string | null | undefined): Promise<ImageBit
   }
 }
 
-// Word-wrap using CanvasRenderingContext2D.measureText. Honours an
-// optional max-line cap and reserves the last visible slot for an
-// ellipsis when truncation is required.
 type WrapResult = { lines: string[]; truncated: boolean };
 
+// Word-wrap using CanvasRenderingContext2D.measureText. Honours a hard
+// max-line cap and reserves the last visible slot for an ellipsis when
+// truncation is required. Never breaks inside a word unless the word
+// itself is wider than maxWidth (rare — only for pathological URLs).
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -147,7 +160,6 @@ function wrapText(
       current = probe;
       continue;
     }
-    // Word itself wider than maxWidth: hard-break inside the word.
     if (!current && ctx.measureText(word).width > maxWidth) {
       let chunk = '';
       for (const ch of word) {
@@ -182,7 +194,6 @@ function wrapText(
   }
   if (truncated && lines.length) {
     const last = lines[lines.length - 1];
-    // Drop the trailing word if it overflows with the ellipsis.
     let trimmed = last;
     while (trimmed && ctx.measureText(`${trimmed}…`).width > maxWidth) {
       const idx = trimmed.lastIndexOf(' ');
@@ -197,35 +208,35 @@ function wrapText(
   return { lines, truncated };
 }
 
-// Pick the largest font size from a stack that fits a piece of text
-// within [maxWidth, maxLines] without truncation.
+// Pick the largest font from a stack that fits the text within
+// [maxWidth, maxLines] without truncation. Falls back to the smallest
+// size if the text genuinely cannot fit any size comfortably — wrapText
+// ellipsis-truncates the last line, so the rendered title never
+// overflows the card width or the line cap.
 function pickFittingFontSize(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
-  maxHeight: number,
+  maxLines: number,
   lineHeightRatio: number,
   sizes: number[],
 ): { size: number; lines: string[] } {
   for (const size of sizes) {
     ctx.font = `700 ${size}px ${FONT_DISPLAY_BOLD}`;
-    const result = wrapText(ctx, text, maxWidth, 9999);
-    const totalHeight = result.lines.length * size * lineHeightRatio;
-    // Pick the first size where the body comfortably fits.
-    if (totalHeight <= maxHeight && result.lines.every((l) => ctx.measureText(l).width <= maxWidth)) {
-      return { size, lines: result.lines };
-    }
+    const result = wrapText(ctx, text, maxWidth, maxLines);
+    if (!result.truncated) return { size, lines: result.lines };
   }
   const last = sizes[sizes.length - 1];
   ctx.font = `700 ${last}px ${FONT_DISPLAY_BOLD}`;
-  const result = wrapText(ctx, text, maxWidth, Math.max(1, Math.floor(maxHeight / (last * lineHeightRatio))));
+  const result = wrapText(ctx, text, maxWidth, maxLines);
   return { size: last, lines: result.lines };
 }
 
-// Background layer that fills the canvas with the cover. Matches the
-// existing .note-preview-image style (object-fit: cover, centered crop)
-// and adds the site's standard 60% dark wash so the foreground card
-// stays legible on any cover.
+// Background. Three horizontal bands of dark wash (none of them are a
+// gradient — each is a flat fillRect) sit on top of the blurred cover.
+// The bands lift contrast where the foreground text needs it (above
+// the card and at the card's top edge) without flattening the cover
+// where it's the only element on the canvas (above the slab).
 function drawCoverBackground(
   ctx: CanvasRenderingContext2D,
   cover: ImageBitmap | null,
@@ -235,37 +246,46 @@ function drawCoverBackground(
 
   if (cover) {
     const { width: sw, height: sh } = cover;
-    const scale = Math.max(WIDTH / sw, HEIGHT / sh);
-    const dw = sw * scale;
-    const dh = sh * scale;
-    const dx = (WIDTH - dw) / 2;
-    const dy = (HEIGHT - dh) / 2;
-    ctx.drawImage(cover, dx, dy, dw, dh);
+    // Draw the cover to a temp canvas so we can blur + crop without
+    // mutating the global ctx filter for subsequent draws.
+    const off = document.createElement('canvas');
+    off.width = WIDTH;
+    off.height = HEIGHT;
+    const offCtx = off.getContext('2d');
+    if (offCtx) {
+      const scale = Math.max(WIDTH / sw, HEIGHT / sh);
+      const dw = sw * scale;
+      const dh = sh * scale;
+      const dx = (WIDTH - dw) / 2;
+      const dy = (HEIGHT - dh) / 2;
+      offCtx.filter = `blur(${COVER_BLUR_PX}px)`;
+      offCtx.drawImage(cover, dx, dy, dw, dh);
+      ctx.drawImage(off, 0, 0);
+    }
   } else {
     // Editorial fallback when the note has no cover: the brand's
-    // 7px dot texture (same recipe as body::before in global.css)
-    // scaled up for the story canvas, plus a chunky red "R" anchored
-    // off-center. No fake imagery, no gradient.
+    // dot texture (same recipe as body::before in global.css) plus a
+    // chunky red "R" anchored off-center. No fake imagery, no gradient.
     drawDotTexture(ctx, 0, 0, WIDTH, HEIGHT, 14, 'rgba(255,255,255,0.07)');
     ctx.save();
     ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    ctx.font = `700 ${900}px ${FONT_DISPLAY_BOLD}`;
+    ctx.font = `700 900px ${FONT_DISPLAY_BOLD}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     ctx.fillText('R', WIDTH / 2, HEIGHT * 0.28);
     ctx.restore();
   }
 
-  // Dark wash. A single flat layer (no gradient) at 0.35 of the brand
-  // black lets the cover breathe in the upper slab while still giving
-  // the white card enough contrast when it sits on top. The heavier
-  // 0.65 wash is reserved for the visible upper strip so the crop
-  // reads as the site's atmospheric black/red artwork rather than
-  // a generic dark photo.
-  ctx.fillStyle = 'rgba(13,13,13,0.65)';
-  ctx.fillRect(0, 0, WIDTH, CARD_TOP_OFFSET);
-  ctx.fillStyle = 'rgba(13,13,13,0.35)';
-  ctx.fillRect(0, CARD_TOP_OFFSET, WIDTH, HEIGHT - CARD_TOP_OFFSET);
+  // Three banded dark washes. Each is a flat fillRect, not a gradient.
+  // The mid band corresponds to the card's vertical span so the card's
+  // white field sits on a slightly less-darkened band (helpful for
+  // perceiving the cover around the card edges).
+  ctx.fillStyle = `rgba(13,13,13,${COVER_DARKEN_TOP})`;
+  ctx.fillRect(0, 0, WIDTH, CARD_TOP_MIN);
+  ctx.fillStyle = `rgba(13,13,13,${COVER_DARKEN_MID})`;
+  ctx.fillRect(0, CARD_TOP_MIN, WIDTH, CARD_BOTTOM_MAX - CARD_TOP_MIN);
+  ctx.fillStyle = `rgba(13,13,13,${COVER_DARKEN_BOTTOM})`;
+  ctx.fillRect(0, CARD_BOTTOM_MAX, WIDTH, HEIGHT - CARD_BOTTOM_MAX);
 }
 
 function drawDotTexture(
@@ -294,138 +314,282 @@ function drawDotTexture(
   ctx.fillStyle = saved;
 }
 
-// The white reading card. Anchored to the lower portion of the canvas
-// with asymmetric padding — same anti-centered framing the on-page
-// .note-preview uses — and given a clipped top-left corner (the .cut
-// vocabulary from global.css) so the card visually slides under the
-// background instead of floating in it.
-function drawForegroundCard(
-  ctx: CanvasRenderingContext2D,
-  data: NoteShareData,
-): void {
-  const cardX = CARD_HORIZONTAL_PADDING;
-  const cardY = CARD_TOP_OFFSET; // card's flat top — above this, the cover slab shows through
-  const cardWidth = WIDTH - CARD_HORIZONTAL_PADDING * 2;
-  const cardHeight = HEIGHT - cardY - CARD_BOTTOM_PADDING_VERTICAL;
+// Single piece of red structural accent on the card — matches the
+// existing .panel `box-shadow: 10px 10px 0 rgba(115,36,36,.48)`
+// vocabulary but rendered as a literal 6-px left edge so it works in
+// a static image (no real shadows on a flat exported PNG).
+const CARD_LEFT_EDGE_W = 6;
+const CARD_TOP_LEFT_CUT = 36; // .cut vocabulary from global.css (28 on site; 36 reads stronger at story scale)
 
-  const cut = 36; // top-left clip — same vocabulary as .cut (.cut uses 28px on the site)
+type CardMeasurement = {
+  cardX: number;
+  cardY: number;
+  cardWidth: number;
+  cardHeight: number;
+  contentX: number;
+  contentMaxX: number;
+  contentY: number;
+  contentMaxY: number;
+};
+
+function paintCardShell(ctx: CanvasRenderingContext2D, m: CardMeasurement): void {
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(cardX + cut, cardY);
-  ctx.lineTo(cardX + cardWidth, cardY);
-  ctx.lineTo(cardX + cardWidth, cardY + cardHeight);
-  ctx.lineTo(cardX, cardY + cardHeight);
-  ctx.lineTo(cardX, cardY + cut);
+  ctx.moveTo(m.cardX + CARD_TOP_LEFT_CUT, m.cardY);
+  ctx.lineTo(m.cardX + m.cardWidth, m.cardY);
+  ctx.lineTo(m.cardX + m.cardWidth, m.cardY + m.cardHeight);
+  ctx.lineTo(m.cardX, m.cardY + m.cardHeight);
+  ctx.lineTo(m.cardX, m.cardY + CARD_TOP_LEFT_CUT);
   ctx.closePath();
   ctx.fillStyle = PALETTE.white;
   ctx.fill();
-
-  // 6px red left edge — the single structural accent on the card.
-  // Matches the .panel `box-shadow: 10px 10px 0 rgba(115,36,36,.48)`
-  // idea in miniature, but rendered as a literal edge instead of
-  // shadow so it works on a static image.
-  ctx.fillStyle = PALETTE.red;
-  ctx.fillRect(cardX, cardY + cut, 6, cardHeight - cut);
-
   ctx.restore();
 
-  // Card content layout. The same content stack opens with a small
-  // // CATEGORY eyebrow (matching the OG card eyebrow in
-  // opengraph-image.ts), then the reading time, then the title
-  // anchor, then the excerpt, then the footer site-name + author.
-  const contentX = cardX + 64; // inner indent beyond the red edge
-  const contentMaxX = cardX + cardWidth - 56;
-  let cursorY = cardY + CARD_TOP_PADDING;
-  const safeMaxY = cardY + cardHeight - CARD_BOTTOM_PADDING;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(m.cardX + CARD_TOP_LEFT_CUT, m.cardY);
+  ctx.lineTo(m.cardX + m.cardWidth, m.cardY);
+  ctx.lineTo(m.cardX + m.cardWidth, m.cardY + m.cardHeight);
+  ctx.lineTo(m.cardX, m.cardY + m.cardHeight);
+  ctx.lineTo(m.cardX, m.cardY + CARD_TOP_LEFT_CUT);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = PALETTE.red;
+  ctx.fillRect(m.cardX, m.cardY + CARD_TOP_LEFT_CUT, CARD_LEFT_EDGE_W, m.cardHeight - CARD_TOP_LEFT_CUT);
+  ctx.restore();
+}
 
-  const mid = (text: string, x: number, y: number) => {
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, y);
+// Layout the card content top-down. Returns the y-cursor after the
+// last text block (which is the start of the footer divider).
+type ContentLayout = {
+  measurement: CardMeasurement;
+  cursorY: number;
+  hasFooter: boolean;
+  footerY: number;
+};
+
+function layoutCard(
+  ctx: CanvasRenderingContext2D,
+  data: NoteShareData,
+): ContentLayout {
+  const cardX = CARD_SIDE_PADDING;
+  const cardY = CARD_TOP_MIN; // top is anchored at 18% so cover reads above
+  const contentX = cardX + CARD_CONTENT_PADDING_X;
+  const contentMaxX = cardX + CARD_WIDTH - CARD_CONTENT_PADDING_X;
+
+  // 1. Measure: stack the content, accumulate heights, decide the
+  //    card's actual height (clamped), then re-derive the cursorY that
+  //    positions everything correctly inside the (now smaller) card.
+
+  const fontsReady = (size: number, family = FONT_DISPLAY_BOLD) => {
+    ctx.font = `700 ${size}px ${family}`;
   };
 
   // // CATEGORY eyebrow
-  ctx.fillStyle = PALETTE.red;
-  ctx.font = `700 26px ${FONT_DISPLAY_BOLD}`;
-  mid(`//`, contentX, cursorY + 14);
-  ctx.fillStyle = PALETTE.black;
-  ctx.font = `700 26px ${FONT_DISPLAY_BOLD}`;
+  fontsReady(28);
   const categoryText = (data.category || 'NOTES').toUpperCase();
-  mid(categoryText, contentX + ctx.measureText('// ').width, cursorY + 14);
-  cursorY += 28 + 24;
+  const categoryEyebrowH = 28; // single line height for the eyebrow
+  let y = cardY + CARD_CONTENT_PADDING_TOP + categoryEyebrowH;
 
-  // Reading time (optional). The page passes a plain "03 MIN" string;
-  // the renderer composes the on-card label so the textual treatment
-  // stays consistent if the source format ever changes.
+  // // READING TIME eyebrow (optional)
   const readingTime = (data.readingTime ?? '').trim();
+  let readingTimeH = 0;
   if (readingTime) {
-    ctx.fillStyle = PALETTE.gray;
-    ctx.font = `700 22px ${FONT_DISPLAY_BOLD}`;
-    mid(`// ${readingTime.toUpperCase()} READ`, contentX, cursorY + 12);
-    cursorY += 24 + 20;
+    readingTimeH = 24 + 16;
+    y += readingTimeH;
   }
 
-  // Red title accent stripe. Sits just above the title and matches the
-  // existing .stripe primitive (`height:2px; background:var(--red);
-  // transform:skewX(-30deg)`).
+  // Title accent stripe
   const stripeH = 6;
-  ctx.fillStyle = PALETTE.red;
-  ctx.beginPath();
-  ctx.moveTo(contentX, cursorY + stripeH / 2);
-  ctx.lineTo(contentX + 220, cursorY + stripeH / 2);
-  ctx.lineTo(contentX + 220 - 18, cursorY + stripeH / 2 + stripeH);
-  ctx.lineTo(contentX, cursorY + stripeH / 2 + stripeH);
-  ctx.closePath();
-  ctx.fill();
-  cursorY += stripeH + 26;
+  const stripeGapAfter = 24;
+  y += stripeH + stripeGapAfter;
 
-  // Title — pick a font size that fits, then wrap to the available height.
+  // TITLE — auto-size, auto-wrap, with hard max line count so a long
+  // title can never push the card into the Link-sticker zone.
   const titleMaxWidth = contentMaxX - contentX;
-  const titleHeightBudget = Math.min(620, safeMaxY - cursorY - 80);
+  const TITLE_MAX_LINES = 4;
+  const titleSizes = [88, 76, 66, 58];
+  // Max-lines caps the title so it can't push the card into the
+  // Link sticker zone; wrapText ellipsis-truncates the last line if
+  // the title still doesn't fit at the smallest size.
   const titlePicked = pickFittingFontSize(
     ctx,
     (data.title || '').toUpperCase(),
     titleMaxWidth,
-    titleHeightBudget,
+    TITLE_MAX_LINES,
     0.96,
-    [96, 84, 72, 64],
+    titleSizes,
   );
   const titleSize = titlePicked.size;
   const titleLines = titlePicked.lines;
   const titleLineHeight = titleSize * 0.96;
+  const titleH = titleLines.length * titleLineHeight;
+  y += titleH;
+
+  // EXCERPT — generous line cap; truncated with ellipsis if needed.
+  const excerptMaxLines = 5;
+  ctx.font = `400 26px ${FONT_SANS}`;
+  const excerptH = (() => {
+    const r = wrapText(ctx, data.excerpt || '', titleMaxWidth, excerptMaxLines);
+    return r.lines.length * 26 * 1.5;
+  })();
+  const excerptGapBefore = 28;
+  y += excerptGapBefore + excerptH;
+
+  // Footer: thin divider, then a single footer line (site name, with
+  // optional author/date on the right). Footer sits directly under the
+  // excerpt with no spacer-driven gap so the card "hugs its content".
+  const footerDividerGap = 28;
+  const footerLineH = 28;
+  y += footerDividerGap + footerLineH; // divider (1) + padding + footer text
+
+  // 2. Convert content height into card height, clamped between
+  //    CARD_MIN_HEIGHT and CARD_MAX_HEIGHT.
+  const rawContentHeight = y - cardY;
+  const desiredHeight = rawContentHeight + CARD_CONTENT_PADDING_BOTTOM;
+  const cardHeight = Math.max(CARD_MIN_HEIGHT, Math.min(CARD_MAX_HEIGHT, desiredHeight));
+
+  // If the content overflowed the max, the card simply tops out at
+  // CARD_MAX_HEIGHT and the footer sits at the bottom edge. The title
+  // and excerpt are guaranteed not to overflow because pickFittingFontSize
+  // already enforced maxLines + measureText. The footer always fits.
+
+  // Re-derive the inner y positions given the resolved card height.
+  const innerTop = cardY + CARD_CONTENT_PADDING_TOP;
+  let cursorY = innerTop;
+  cursorY += categoryEyebrowH; // after category
+  cursorY += readingTimeH;
+  cursorY += stripeH + stripeGapAfter;
+
+  const titleTopY = cursorY;
+  cursorY += titleH;
+
+  const excerptTopY = cursorY + excerptGapBefore;
+  cursorY = excerptTopY + excerptH;
+
+  // Footer sits at cardHeight - CARD_CONTENT_PADDING_BOTTOM - footerLineH
+  // so the divider stays one constant distance from the bottom edge
+  // regardless of how short the excerpt was. This is the only "design
+  // constant" the card uses — and it's deliberately small so a tiny
+  // note still produces a tight card.
+  const footerY = cardY + cardHeight - CARD_CONTENT_PADDING_BOTTOM - footerLineH;
+
+  const measurement: CardMeasurement = {
+    cardX,
+    cardY,
+    cardWidth: CARD_WIDTH,
+    cardHeight,
+    contentX,
+    contentMaxX,
+    contentY: innerTop,
+    contentMaxY: cardY + cardHeight - CARD_CONTENT_PADDING_BOTTOM,
+  };
+
+  return {
+    measurement,
+    cursorY: titleTopY,
+    hasFooter: true,
+    footerY,
+  };
+}
+
+// Draw the resolved card. The layout step pre-measured everything so
+// here we just emit fills/lines at the recorded coordinates.
+function drawForegroundCard(
+  ctx: CanvasRenderingContext2D,
+  data: NoteShareData,
+  m: ContentLayout,
+): void {
+  paintCardShell(ctx, m.measurement);
+  const { measurement } = m;
+  const { contentX, contentMaxX } = measurement;
+
+  // // CATEGORY eyebrow — same primitive as opengraph-image.ts and the
+  // .eyebrow class in global.css.
+  const eyebrowY = measurement.contentY;
+  ctx.fillStyle = PALETTE.red;
+  ctx.font = `700 28px ${FONT_DISPLAY_BOLD}`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText('//', contentX, eyebrowY);
+  const slashWidth = ctx.measureText('// ').width;
   ctx.fillStyle = PALETTE.black;
-  ctx.font = `700 ${titleSize}px ${FONT_DISPLAY_BOLD}`;
+  const categoryText = (data.category || 'NOTES').toUpperCase();
+  ctx.fillText(categoryText, contentX + slashWidth, eyebrowY);
+
+  let y = eyebrowY + 28 + 16;
+
+  // // READING TIME (optional)
+  const readingTime = (data.readingTime ?? '').trim();
+  if (readingTime) {
+    ctx.fillStyle = PALETTE.gray;
+    ctx.font = `700 22px ${FONT_DISPLAY_BOLD}`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`// ${readingTime.toUpperCase()} READ`, contentX, y);
+    y += 24;
+  }
+
+  // Red title accent stripe (the existing .stripe primitive, adapted
+  // to image-space — no transform).
+  const stripeH = 6;
+  ctx.fillStyle = PALETTE.red;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y + stripeH / 2);
+  ctx.lineTo(contentX + 180, y + stripeH / 2);
+  ctx.lineTo(contentX + 180 - 18, y + stripeH / 2 + stripeH);
+  ctx.lineTo(contentX, y + stripeH / 2 + stripeH);
+  ctx.closePath();
+  ctx.fill();
+  y += stripeH + 24;
+
+  // TITLE — re-derive text metrics now that we're rendering (cheap;
+  // nothing has changed) so the title here matches the one the layout
+  // step measured. We deliberately don't precompute size × line arrays
+  // here — re-running the same sizing passes ~2× per render is
+  // negligible on a 1080×1920 canvas.
+  ctx.fillStyle = PALETTE.black;
   ctx.textBaseline = 'top';
+  const titleMaxWidth = contentMaxX - contentX;
+  const titlePicked = pickFittingFontSize(
+    ctx,
+    (data.title || '').toUpperCase(),
+    titleMaxWidth,
+    4,
+    0.96,
+    [88, 76, 66, 58],
+  );
+  const titleSize = titlePicked.size;
+  const titleLines = titlePicked.lines;
+  const titleLineHeight = titleSize * 0.96;
+  ctx.font = `700 ${titleSize}px ${FONT_DISPLAY_BOLD}`;
   titleLines.forEach((line, i) => {
-    ctx.fillText(line, contentX, cursorY + i * titleLineHeight);
+    ctx.fillText(line, contentX, y + i * titleLineHeight);
   });
-  cursorY += titleLines.length * titleLineHeight + 28;
 
-  // Excerpt — sans serif, generous leading, gray for editorial weight.
-  const excerptMaxHeight = Math.min(360, safeMaxY - cursorY - 200);
-  const excerptMaxLines = Math.max(3, Math.floor(excerptMaxHeight / (30 * 1.5)));
+  // EXCERPT
+  const excerptTopY = y + titleLines.length * titleLineHeight + 28;
   ctx.fillStyle = '#3a3a3a';
-  ctx.font = `400 30px ${FONT_SANS}`;
-  const excerpt = wrapText(ctx, data.excerpt || '', contentMaxX - contentX, excerptMaxLines);
-  const excerptLineHeight = 30 * 1.5;
-  excerpt.lines.forEach((line, i) => {
-    ctx.fillText(line, contentX, cursorY + i * excerptLineHeight);
+  ctx.font = `400 26px ${FONT_SANS}`;
+  const r = wrapText(ctx, data.excerpt || '', titleMaxWidth, 5);
+  r.lines.forEach((line, i) => {
+    ctx.fillText(line, contentX, excerptTopY + i * 26 * 1.5);
   });
-  cursorY += excerpt.lines.length * excerptLineHeight;
 
-  // Spacer pushes the footer row down to the bottom of the card.
-  const spacer = Math.max(40, safeMaxY - cursorY - 80);
-  cursorY += spacer;
-
-  // Divider above the footer.
+  // Footer divider — thin 1px line, brand black at low opacity.
   ctx.fillStyle = 'rgba(13,13,13,0.18)';
-  ctx.fillRect(contentX, cursorY, contentMaxX - contentX, 1);
-  cursorY += 24;
+  ctx.fillRect(contentX, m.footerY - 18, contentMaxX - contentX, 1);
 
-  // Footer: site name on the left, author/date on the right.
+  // Footer text. Site name on the left, optional author/date on the
+  // right. The site name is the brand anchor (matches the OG card's
+  // "RAVEDEPRINZ.ME  /  NOTES" footer and the existing note-page
+  // .note-preview-url microcopy).
   ctx.textBaseline = 'middle';
   ctx.font = `700 18px ${FONT_DISPLAY_BOLD}`;
   ctx.fillStyle = PALETTE.black;
-  mid((data.siteName || 'RAVEDEPRINZ.ME').toUpperCase(), contentX, cursorY + 12);
+  ctx.fillText(
+    (data.siteName || 'RAVEDEPRINZ.ME').toUpperCase(),
+    contentX,
+    m.footerY + 6,
+  );
 
   const rightBits = [data.author?.trim(), data.publishedAt?.trim()].filter(Boolean);
   if (rightBits.length) {
@@ -433,7 +597,7 @@ function drawForegroundCard(
     ctx.fillStyle = PALETTE.gray;
     const rightText = rightBits.join(' · ');
     const rw = ctx.measureText(rightText).width;
-    ctx.fillText(rightText, contentMaxX - rw, cursorY + 12);
+    ctx.fillText(rightText, contentMaxX - rw, m.footerY + 6);
   }
 }
 
@@ -455,7 +619,8 @@ export async function generateNoteStoryBlob(data: NoteShareData): Promise<Blob> 
   const cover = await loadCoverBitmap(data.coverImage || null);
 
   drawCoverBackground(ctx, cover);
-  drawForegroundCard(ctx, data);
+  const layout = layoutCard(ctx, data);
+  drawForegroundCard(ctx, data, layout);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {

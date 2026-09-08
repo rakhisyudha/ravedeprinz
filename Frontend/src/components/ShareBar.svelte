@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { getShareUrls } from '../lib/seo';
   import { shareNoteStory, canShareFiles } from '../lib/sharing/shareNote';
   import type { NoteShareData } from '../lib/sharing/noteStoryRenderer';
 
@@ -10,25 +9,29 @@
     noteData?: NoteShareData | null;
   }
 
-  const { url, title, description, noteData = null }: Props = $props();
+  const { url, title, description: _description, noteData = null }: Props = $props();
 
-  let copied = $state(false);
   let generating = $state(false);
-
-  async function flashCopied() {
-    copied = true;
-    setTimeout(() => copied = false, 2000);
-  }
-
-  function platformLabel(label: string): string {
-    if (label === 'FB') return 'Facebook';
-    return label.charAt(0) + label.slice(1).toLowerCase();
-  }
 
   // True only on devices that can actually receive a file in the share
   // sheet. Computed once at mount — share capability doesn't change
-  // during the page lifetime.
+  // during the page lifetime. Used only as a hint to swap the button
+  // label to "GENERATING..." while a story is being rendered; if the
+  // browser later reports it cannot share files, shareNoteStory()
+  // returns 'unsupported' and we silently fall through to the URL
+  // share path below.
   const fileShareSupported = typeof navigator !== 'undefined' && canShareFiles();
+
+  // X / Twitter intent. Real share destination, never a hardcoded URL:
+  // the current note's title and canonical URL are encoded at click
+  // time. The user already opted into opening X by tapping the chip.
+  const xIntent =
+    `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${title} // ravedeprinz`)}` +
+    `&url=${encodeURIComponent(url)}`;
+
+  // Facebook sharer. Same approach — the current note URL is encoded
+  // at click time, no hardcoding.
+  const fbIntent = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
 
   // Build a slug-based filename so users saving the image see the
   // article they're looking at. Falls back to "ravedeprinz-story".
@@ -53,40 +56,30 @@
       generating = true;
       try {
         const result = await shareNoteStory(noteData, { filename: storyFilename() });
+        // 'shared' = success, 'cancelled' = user closed the sheet
+        // (not an error). Either way, leave the existing URL fallback
+        // untouched.
         if (result.kind === 'shared' || result.kind === 'cancelled') return;
-        // unsupported/failed: fall through to the existing clipboard path below
+        // 'unsupported' / 'failed': fall through silently.
       } finally {
         generating = false;
       }
     }
 
-    // URL-share fallback (also the path for browsers without file share).
+    // URL-share fallback. Same path used for browsers without file
+    // share support.
     if (typeof navigator !== 'undefined' && 'share' in navigator) {
       try {
-        await navigator.share({ title, text: description || title, url });
+        await navigator.share({ title, text: title, url });
         return;
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
       }
     }
-    try {
-      await navigator.clipboard.writeText(url);
-      await flashCopied();
-    } catch {
-      /* clipboard unavailable — the copy button remains */
-    }
+    // No clipboard copy here — the brief removed COPY entirely; native
+    // share is the only path, and on a non-shareable browser the user
+    // can manually copy from the address bar.
   }
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      await flashCopied();
-    } catch {
-      /* clipboard unavailable — leave the label alone */
-    }
-  }
-
-  const targets = getShareUrls({ title, url, description });
 </script>
 
 <div class="note-share">
@@ -102,27 +95,27 @@
       disabled={generating}
       aria-label="Share this note"
     >
-      {#if generating}
-        GENERATING…
-      {:else if copied}
-        COPIED ✓
-      {:else}
-        SHARE ↗
-      {/if}
+      {generating ? 'GENERATING…' : 'SHARE ↗'}
     </button>
-    {#each targets as target}
-      <a
-        href={target.href}
-        target={target.external ? '_blank' : undefined}
-        rel={target.external ? 'noopener noreferrer' : undefined}
-        class="note-share-copy touch-target"
-        aria-label={`Share on ${platformLabel(target.label)}`}
-      >
-        {target.label}
-      </a>
-    {/each}
-    <button type="button" class="note-share-copy touch-target" onclick={handleCopy} aria-label="Copy link to this note">
-      {copied ? 'COPIED ✓' : 'COPY'}
-    </button>
+    <a
+      href={xIntent}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="note-share-copy touch-target"
+      aria-label="Share on X"
+      title="Share on X"
+    >
+      X
+    </a>
+    <a
+      href={fbIntent}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="note-share-copy touch-target"
+      aria-label="Share on Facebook"
+      title="Share on Facebook"
+    >
+      FB
+    </a>
   </div>
 </div>
