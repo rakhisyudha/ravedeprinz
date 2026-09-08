@@ -20,10 +20,6 @@
   let status = $state('LOADING…');
   let draft: NoteRow = $state({});
 
-  function slugify(input: string): string {
-    return input.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  }
-
   function readPreview(row: NoteRow): string {
     return `READ ${String(readingMinutes(String(row.body ?? ''), String(row.image_url ?? ''))).padStart(2, '0')} MIN`;
   }
@@ -76,7 +72,7 @@
 {#snippet newTab()}
   <AdminSection eyebrow="NEW NOTE">
     <div class="admin-grid-2">
-      <AdminField label="TITLE" value={String(draft.title ?? '')} onChange={(v) => (draft = { ...draft, title: v, slug: slugify(v) })} />
+      <AdminField label="TITLE" value={String(draft.title ?? '')} onChange={(v) => (draft = { ...draft, title: v })} />
       <AdminField label="TAG" value={String(draft.tag ?? 'REFLECTION')} onChange={(v) => (draft = { ...draft, tag: v })} />
       <AdminField label="SUBTITLE (META DESC)" value={String(draft.subtitle ?? '')} onChange={(v) => (draft = { ...draft, subtitle: v })} />
       <AdminField label="AUTHOR" value={String(draft.author ?? '')} onChange={(v) => (draft = { ...draft, author: v })} />

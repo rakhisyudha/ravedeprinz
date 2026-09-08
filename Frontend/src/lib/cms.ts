@@ -84,6 +84,7 @@ export type Note = {
   image_url?: string | null;
   published_at?: string | null;
   updated_at?: string | null;
+  created_at?: string | null;
 };
 export type NowAttention = { number: string; label: string; title: string; note: string };
 export type NowHistory = { date_label: string; text: string };

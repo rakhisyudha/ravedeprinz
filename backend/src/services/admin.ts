@@ -1,4 +1,5 @@
 import { sql } from '../db';
+import { ensureUniqueSlug, slugify } from '../utils/slug';
 
 // Admin content writes. Semantics mirror the previous Supabase-backed API
 // exactly (including its quirks: skills wipe+insert, work delete-diff,
@@ -179,10 +180,13 @@ export async function deleteProject(id: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// Notes CRUD (published_at toggling + editable allowlist, mirrored)
+// Notes CRUD (locked slug: editable allowlist excludes it; the slug is
+// the note's stable URL identity and can NEVER be modified after
+// creation. createNote generates one server-side from the title; the
+// slug field on update payloads is ignored.)
 // ---------------------------------------------------------------------------
 
-const NOTE_EDITABLE = ['title', 'slug', 'body', 'tag', 'author', 'subtitle', 'image_url', 'sort_order'] as const;
+const NOTE_EDITABLE = ['title', 'body', 'tag', 'author', 'subtitle', 'image_url', 'sort_order'] as const;
 
 export async function getAdminNotes(): Promise<{ notes: Row[] }> {
   const rows = await sql`select * from notes order by created_at desc`;
@@ -190,11 +194,26 @@ export async function getAdminNotes(): Promise<{ notes: Row[] }> {
 }
 
 export async function createNote(body: Row): Promise<Row> {
+  const title = String(body.title ?? '').trim();
+  if (!title) {
+    throw Object.assign(new Error('Title is required'), { status: 400 });
+  }
+  // The slug is generated server-side from the title at create time
+  // only. Subsequent edits to the title can never change the slug
+  // (the editable allowlist excludes slug). Any slug in the request
+  // body is ignored — there is exactly one slug-generation policy
+  // and it lives here, so the URL identity is stable.
+  const base = slugify(title);
+  const slug = await ensureUniqueSlug(base, async (candidate) => {
+    const rows = await sql`select 1 from notes where slug = ${candidate} limit 1`;
+    return rows.length > 0;
+  });
+
   const published = (body.published as boolean | undefined) ?? false;
   const rows = (await sql`
     insert into notes (title, slug, body, tag, author, subtitle, image_url, published, published_at)
     values (
-      ${body.title as string}, ${body.slug as string}, ${(body.body as string | undefined) ?? ''},
+      ${title}, ${slug}, ${(body.body as string | undefined) ?? ''},
       ${(body.tag as string | undefined) ?? 'REFLECTION'}, ${(body.author as string | null | undefined) ?? null},
       ${(body.subtitle as string | null | undefined) ?? null}, ${(body.image_url as string | null | undefined) ?? null},
       ${published}, ${published ? new Date().toISOString() : null}

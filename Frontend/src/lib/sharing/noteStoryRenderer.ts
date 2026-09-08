@@ -21,7 +21,11 @@ export type NoteShareData = {
   category: string;
   coverImage?: string | null;
   readingTime?: string | null;
-  publishedAt?: string | null;
+  // createdAt is the immutable note creation date — distinct from
+  // updatedAt, which moves on every edit. The Story uses createdAt
+  // so the date shown in the share image never changes after the
+  // note is edited.
+  createdAt?: string | null;
   author?: string | null;
   siteName?: string | null;
 };
@@ -591,7 +595,7 @@ function drawForegroundCard(
     m.footerY + 6,
   );
 
-  const rightBits = [data.author?.trim(), data.publishedAt?.trim()].filter(Boolean);
+  const rightBits = [data.author?.trim(), data.createdAt?.trim()].filter(Boolean);
   if (rightBits.length) {
     ctx.font = `400 18px ${FONT_SANS}`;
     ctx.fillStyle = PALETTE.gray;

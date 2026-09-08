@@ -32,6 +32,14 @@ const date =
   note?.published_at && !Number.isNaN(new Date(note.published_at).getTime())
     ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
     : '';
+// Story date is the immutable note creation date, distinct from the
+// on-page article date which still uses published_at for SEO/meta. The
+// Story shows the original creation date so an edited note still reads
+// as the same transmission when shared.
+const storyCreatedDate =
+  note?.created_at && !Number.isNaN(new Date(note.created_at).getTime())
+    ? new Date(note.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+    : '';
 const coverAlt = note?.subtitle?.trim() || (note ? `Cover artwork for “${note.title}”` : '');
 const ogImage = note ? getNoteOgImageUrl(note, slug ?? '') : null;
 const absoluteImage = note ? absolutizeUpload(note.image_url) : null;
@@ -42,7 +50,7 @@ const noteShareData: NoteShareData | null = note
       category: note.tag,
       coverImage: absoluteImage ?? undefined,
       readingTime: minutes > 0 ? `${String(minutes).padStart(2, '0')} MIN` : null,
-      publishedAt: date || undefined,
+      createdAt: storyCreatedDate || undefined,
       author: author || undefined,
       siteName: 'ravedeprinz.me',
     }

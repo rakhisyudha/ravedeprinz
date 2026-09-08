@@ -118,6 +118,7 @@ export type Note = {
   published: boolean;
   published_at: string | null;
   sort_order: number;
+  featured_on_now: boolean;
   created_at: string;
   updated_at: string;
 };
