@@ -12,6 +12,7 @@ import {
   getNoteOgImageUrl,
   getSiteUrl,
 } from '../../lib/seo';
+import type { NoteShareData } from '../../lib/sharing/noteStoryRenderer';
 
 export const prerender = false;
 
@@ -34,6 +35,18 @@ const date =
 const coverAlt = note?.subtitle?.trim() || (note ? `Cover artwork for “${note.title}”` : '');
 const ogImage = note ? getNoteOgImageUrl(note, slug ?? '') : null;
 const absoluteImage = note ? absolutizeUpload(note.image_url) : null;
+const noteShareData: NoteShareData | null = note
+  ? {
+      title: note.title,
+      excerpt: cleanDescription(note.body, note.subtitle, 220),
+      category: note.tag,
+      coverImage: absoluteImage ?? undefined,
+      readingTime: minutes > 0 ? `${String(minutes).padStart(2, '0')} MIN` : null,
+      publishedAt: date || undefined,
+      author: author || undefined,
+      siteName: 'ravedeprinz.me',
+    }
+  : null;
 
 const jsonLd = note
   ? {
@@ -153,7 +166,7 @@ const jsonLd = note
 
           {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
 
-          <ShareBar client:load url={url} title={note.title} description={description} />
+          <ShareBar client:load url={url} title={note.title} description={description} noteData={noteShareData} />
 
           <div class="note-article-footer">
             <span class="note-pill"># {note.tag}</span>
