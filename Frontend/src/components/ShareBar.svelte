@@ -12,6 +12,12 @@
   const { url, title, description: _description, noteData = null }: Props = $props();
 
   let generating = $state(false);
+  let copied = $state(false);
+
+  async function flashCopied() {
+    copied = true;
+    setTimeout(() => copied = false, 2000);
+  }
 
   // True only on devices that can actually receive a file in the share
   // sheet. Computed once at mount — share capability doesn't change
@@ -76,9 +82,18 @@
         if (error instanceof DOMException && error.name === 'AbortError') return;
       }
     }
-    // No clipboard copy here — the brief removed COPY entirely; native
-    // share is the only path, and on a non-shareable browser the user
-    // can manually copy from the address bar.
+    // On browsers that lack both file share and Web Share API, do
+    // nothing — the user can copy the URL from the address bar or
+    // use the dedicated COPY chip below.
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      await flashCopied();
+    } catch {
+      /* clipboard unavailable — leave the label alone */
+    }
   }
 </script>
 
@@ -117,5 +132,14 @@
     >
       FB
     </a>
+    <button
+      type="button"
+      class="note-share-copy touch-target"
+      onclick={handleCopy}
+      aria-label="Copy link to this note"
+      title="Copy link to this note"
+    >
+      {copied ? 'COPIED ✓' : 'COPY'}
+    </button>
   </div>
 </div>
