@@ -12,6 +12,11 @@ import { absolutizeUpload, cleanDescription } from '../../../lib/seo';
 // dominant anchor, an excerpt that breathes underneath, and a thin
 // site-name line at the bottom. No decorative borders, no fake metadata,
 // no clipped accent shapes.
+//
+// Type scale is tuned for SMALL PREVIEW READABILITY (WhatsApp/Discord/
+// messaging link previews render this at thumbnail size): the title
+// stays the dominant anchor but yields a little room so the excerpt
+// and footer survive reduction. Hierarchy: title > excerpt > footer > tag.
 export const prerender = false;
 
 const WIDTH = 1200;
@@ -20,7 +25,6 @@ const HEIGHT = 630;
 const RED = '#d92323';
 const BLACK = '#0d0d0d';
 const WHITE = '#ffffff';
-const GRAY = '#7b7b7b';
 const MUTED = '#a8a8a8';
 
 // Same dot texture the body uses — sits behind everything.
@@ -134,6 +138,8 @@ export const GET: APIRoute = async ({ params }) => {
               },
               children: [
                 // // TAG — same primitive as .eyebrow on the site.
+                // Small but legible at thumbnail scale; never larger
+                // than the excerpt above the title.
                 {
                   type: 'div',
                   props: {
@@ -148,7 +154,7 @@ export const GET: APIRoute = async ({ params }) => {
                         props: {
                           style: {
                             color: RED,
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: 700,
                             marginRight: 8,
                           },
@@ -160,7 +166,7 @@ export const GET: APIRoute = async ({ params }) => {
                         props: {
                           style: {
                             color: WHITE,
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: 700,
                             letterSpacing: 4,
                           },
@@ -173,15 +179,17 @@ export const GET: APIRoute = async ({ params }) => {
                 // Title — the anchor. Left-aligned, large, single block.
                 // The display font on the site goes up to ~150px on the
                 // detail page; here we set it where the longest word
-                // still fits the panel with comfortable margins.
+                // still fits the panel with comfortable margins. 84px
+                // keeps it clearly dominant while freeing vertical room
+                // for a readable excerpt.
                 {
                   type: 'div',
                   props: {
                     style: {
-                      marginTop: 56,
-                      maxWidth: 600,
+                      marginTop: 48,
+                      maxWidth: 620,
                       color: WHITE,
-                      fontSize: 96,
+                      fontSize: 84,
                       fontWeight: 700,
                       lineHeight: 0.96,
                       letterSpacing: 1,
@@ -192,31 +200,38 @@ export const GET: APIRoute = async ({ params }) => {
                   },
                 },
                 // Excerpt — the same muted reading copy the site uses
-                // for lede paragraphs. Generous max-width so it breathes.
+                // for lede paragraphs. Sized up so it survives thumbnail
+                // rendering as a clear secondary hierarchy under the
+                // title, hard-clamped to two lines with a clean ellipsis
+                // so a long paragraph can never consume the composition.
                 {
                   type: 'div',
                   props: {
                     style: {
-                      marginTop: 40,
-                      maxWidth: 560,
+                      marginTop: 32,
+                      maxWidth: 600,
                       color: MUTED,
-                      fontSize: 24,
+                      fontSize: 34,
                       fontWeight: 400,
-                      lineHeight: 1.55,
+                      lineHeight: 1.5,
+                      lineClamp: 2,
                       display: 'flex',
                     },
                     children: excerpt,
                   },
                 },
-                // Site-name footer — tiny, far from the title, the only
-                // element that anchors the bottom of the panel.
+                // Site-name footer — the only element that anchors the
+                // bottom of the panel. Small-medium and clearly readable
+                // at thumbnail scale (lifted from GRAY to MUTED for
+                // contrast) while staying far below the excerpt in
+                // visual weight.
                 {
                   type: 'div',
                   props: {
                     style: {
                       marginTop: 'auto',
-                      color: GRAY,
-                      fontSize: 14,
+                      color: MUTED,
+                      fontSize: 20,
                       fontWeight: 700,
                       letterSpacing: 4,
                       display: 'flex',
