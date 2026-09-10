@@ -2,8 +2,8 @@
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 import Menu from '../components/Menu.svelte';
-import { fetchSite } from '../lib/cms';
-import { siteSettings as fallbackSite } from '../data/site';
+import { fetchHome, fetchSite } from '../lib/cms';
+import { navigation as fallbackNav, siteSettings as fallbackSite } from '../data/site';
 
 interface Props {
   title?: string;
@@ -27,6 +27,14 @@ const {
 const liveSite = await fetchSite();
 const footerName = liveSite?.footer_name ?? fallbackSite.footer_name;
 const footerLabel = liveSite?.footer_label ?? fallbackSite.footer_label;
+
+// Live menu navigation, fetched per request like every other page does, so
+// CMS Home → Nav edits appear on the next reload without a rebuild. Falls
+// back to the intentional static navigation when the CMS is unreachable.
+const liveHome = await fetchHome();
+const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigation : fallbackNav).map(
+  ({ href, label, display_number }) => ({ href, label, display_number }),
+);
 ---
 <html lang="en">
   <head>
@@ -34,11 +42,34 @@ const footerLabel = liveSite?.footer_label ?? fallbackSite.footer_label;
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <slot name="head" />
     <ClientRouter />
   </head>
   <body>
-    {header && <Menu client:load currentPath={currentPath} />}
+    <div class="site-background" aria-hidden="true"></div>
+    {header && <Menu client:load currentPath={currentPath} navigation={menuNav} />}
+    {/* Plain-link navigation for script-blocking browsers (content blockers,
+        no-JS WebViews): the Svelte menu trigger needs hydration, so without
+        JavaScript the overlay menu is unreachable. This renders only when
+        scripts are disabled and is absent otherwise. */}
+    <noscript>
+      <nav class="noscript-nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/work">Work</a>
+        <a href="/projects">Projects</a>
+        <a href="/notes">Notes</a>
+        <a href="/now">Now</a>
+        <a href="/login">Login</a>
+      </nav>
+    </noscript>
     <slot />
     {footer && (
       <footer class="site-footer">

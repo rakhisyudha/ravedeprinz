@@ -33,7 +33,7 @@ services:
     environment:
       PORT: 4100
       DATABASE_URL: postgres://archive:archive@db:5432/ravedeprinz
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3100}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000,http://localhost:3100}
       UPLOADS_DIR: /data/uploads
     volumes:
       - ravedeprinz_uploads_v2:/data/uploads

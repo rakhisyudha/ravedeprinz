@@ -3,26 +3,49 @@
   // clip-path wipe open/close, staggered rows with split numeral/label
   // timing, delayed close + login entrances, scroll-aware header.
 
-  interface Props {
-    currentPath?: string;
+  interface NavItem {
+    href: string;
+    label: string;
+    display_number?: string | null;
   }
 
-  const { currentPath = '/' } = $props();
+  interface Props {
+    currentPath?: string;
+    // Live CMS navigation (same rows the home page renders). Empty when the
+    // CMS is unreachable — the island falls back to FALLBACK_LINKS below.
+    navigation?: NavItem[];
+  }
 
-  const links = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
-    { href: '/work', label: 'Work' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/notes', label: 'Notes' },
-    { href: '/now', label: 'Now' },
+  const { currentPath = '/', navigation = [] } = $props();
+
+  // Home (/) is structural, not CMS-editable, so it is prepended here while
+  // every other entry comes from the single CMS navigation source.
+  const FALLBACK_LINKS = [
+    { href: '/', label: 'Home', display_number: '01' },
+    { href: '/about', label: 'About', display_number: '02' },
+    { href: '/work', label: 'Work', display_number: '03' },
+    { href: '/projects', label: 'Projects', display_number: '04' },
+    { href: '/notes', label: 'Notes', display_number: '05' },
+    { href: '/now', label: 'Now', display_number: '06' },
   ] as const;
 
-  const current = links.find((l) => l.href === currentPath)?.label ?? 'Home';
+  const links = $derived(
+    navigation.length > 0
+      ? [{ href: '/', label: 'Home', display_number: '01' }, ...navigation]
+      : [...FALLBACK_LINKS],
+  );
+
+  const current = $derived(links.find((l) => l.href === currentPath)?.label ?? 'Home');
 
   let open = $state(false);
   let scrolled = $state(false);
   let preview = $state(current.toUpperCase());
+
+  // Independent active + hover indicators: each row reserves a fixed
+  // caret slot between number and label, so showing or hiding a `>`
+  // never shifts text. Active follows the route, hover follows the
+  // pointer/focus; a row showing both renders a single mark.
+  let hoveredHref: string | null = $state(null);
 
   $effect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
@@ -42,6 +65,23 @@
 
   function resetPreview() {
     preview = current.toUpperCase();
+  }
+
+  function pointAt(href: string, label: string) {
+    preview = label.toUpperCase();
+    hoveredHref = href;
+  }
+
+  function leaveNav() {
+    resetPreview();
+    hoveredHref = null;
+  }
+
+  function navFocusOut(event: FocusEvent) {
+    const nav = event.currentTarget;
+    const related = event.relatedTarget;
+    if (!(nav instanceof HTMLElement) || (related instanceof Node && nav.contains(related))) return;
+    hoveredHref = null;
   }
 
   // easeInOutQuint — matches the previous [0.76, 0, 0.24, 1] wipe curve.
@@ -88,24 +128,27 @@
 
 {#if open}
   <div class="menu-scene" in:wipeIn out:wipeOut>
+    <span class="menu-scene-dots" aria-hidden="true"></span>
     <span class="menu-preview" aria-hidden="true">{preview}</span>
     <button type="button" class="scene-close touch-target menu-close-in" onclick={() => (open = false)}>
       <span>[</span> CLOSE <span>]</span>
     </button>
-    <nav aria-label="Primary navigation" onmouseleave={resetPreview}>
+    <nav aria-label="Primary navigation" onmouseleave={leaveNav} onfocusout={navFocusOut}>
       {#each links as link, index}
         {@const active = link.href === currentPath}
+        {@const hovered = hoveredHref === link.href}
         <div class="scene-row" style={`animation-delay: ${120 + index * 50}ms`}>
           <a
             href={link.href}
-            onmouseenter={() => (preview = link.label.toUpperCase())}
-            onfocus={() => (preview = link.label.toUpperCase())}
+            onmouseenter={() => pointAt(link.href, link.label)}
+            onfocus={() => pointAt(link.href, link.label)}
             class={`scene-link touch-target${active ? ' active' : ''}`}
             aria-current={active ? 'page' : undefined}
           >
             <span class="scene-num menu-num-in" style={`animation-delay: ${160 + index * 50}ms`}>
-              0{index + 1}
+              {link.display_number ?? `0${index + 1}`}
             </span>
+            <span class="scene-caret-mark" class:is-on={active || hovered} aria-hidden="true">&gt;</span>
             <span class="scene-label menu-label-in" style={`animation-delay: ${200 + index * 50}ms`}>
               {link.label}
             </span>

@@ -9,6 +9,25 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
+/**
+ * Exact-match allowlist check against config.frontendOrigins (parsed from
+ * FRONTEND_URL). Unknown origins fall back to the primary origin so the
+ * browser refuses them; a wildcard is never emitted (cookies involved).
+ */
+export function resolveAllowOrigin(requestOrigin: string | null): string {
+  if (requestOrigin && config.frontendOrigins.includes(requestOrigin)) return requestOrigin;
+  return config.frontendOrigin;
+}
+
+/** Per-request CORS headers: echoes the caller's origin when allowlisted. */
+export function corsHeadersFor(requestOrigin: string | null): Record<string, string> {
+  return {
+    ...corsHeaders,
+    'Access-Control-Allow-Origin': resolveAllowOrigin(requestOrigin),
+    Vary: 'Origin',
+  };
+}
+
 export function json(body: unknown, status = 200, extra: Record<string, string> = {}): Response {
   return Response.json(body, { status, headers: { ...corsHeaders, ...extra } });
 }

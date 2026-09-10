@@ -32,7 +32,7 @@ Environment:
 | -------------------- | ------------------------------------------------------- |
 | `PORT`               | `4100`                                                  |
 | `DATABASE_URL`       | `postgres://archive:archive@127.0.0.1:5433/ravedeprinz` |
-| `FRONTEND_URL`       | `http://localhost:3100`                                 |
+| `FRONTEND_URL`       | `http://localhost:3000,http://localhost:3100`           |
 | `AUTH_SEED_EMAIL`    | (unset → auth seed skips)                               |
 | `AUTH_SEED_PASSWORD` | (unset → auth seed skips)                               |
 

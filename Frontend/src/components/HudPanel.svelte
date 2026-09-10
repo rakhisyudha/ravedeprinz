@@ -65,13 +65,13 @@
   <div class="relative z-20 flex min-h-[300px] flex-col justify-center">
     <span class="hud-noise hud-noise-top">{noiseTop}</span>
     <span
-      class="display hud-number hud-number-reversed block text-[clamp(9rem,22vw,15rem)] font-bold italic leading-[0.72] hud-count-in"
+      class="display hud-number hud-number-reversed block text-[clamp(9rem,22vw,15rem)] italic leading-[0.72] hud-count-in"
       class:hud-count-on={shown}
     >
       {String(years).padStart(2, '0')}
     </span>
     <span
-      class="display mt-8 block max-w-[220px] text-3xl font-bold leading-[0.86] text-white sm:text-4xl hud-label-in"
+      class="display mt-8 block max-w-[220px] text-3xl leading-[0.86] text-white sm:text-4xl hud-label-in"
       class:hud-label-on={shown}
     >
       {labelParts[0] ?? ''} <strong class="hud-of">0F</strong> {labelParts.slice(1).join(' ')}

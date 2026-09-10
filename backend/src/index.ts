@@ -1,6 +1,6 @@
 import { serve } from 'bun';
 import { config } from './config';
-import { corsHeaders, errorResponse, notFound } from './errors';
+import { corsHeadersFor, errorResponse, notFound } from './errors';
 import { checkConnection, migrate } from './db';
 import { adminRouter, authRouter } from './routes/auth';
 import { contentRouter } from './routes/content';
@@ -20,31 +20,32 @@ serve({
     console.log(`[api] ${request.method} ${url.pathname}`);
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
+      return new Response(null, { status: 204, headers: corsHeadersFor(request.headers.get('origin')) });
     }
 
+    let response: Response;
     if (url.pathname.startsWith('/api/content/') || url.pathname === '/api/health') {
-      return contentRouter(request, url);
-    }
-
-    if (url.pathname.startsWith('/api/auth/')) {
-      return authRouter(request, url);
-    }
-
+      response = await contentRouter(request, url);
+    } else if (url.pathname.startsWith('/api/auth/')) {
+      response = await authRouter(request, url);
     // Every /api/admin/* route re-verifies the session server-side.
     // /api/admin/me stays on the auth router; the CMS router owns the rest.
-    if (url.pathname === '/api/admin/me') {
-      return adminRouter(request, url);
-    }
-    if (url.pathname.startsWith('/api/admin/')) {
-      return adminCmsRouter(request, url);
+    } else if (url.pathname === '/api/admin/me') {
+      response = await adminRouter(request, url);
+    } else if (url.pathname.startsWith('/api/admin/')) {
+      response = await adminCmsRouter(request, url);
+    } else if (url.pathname.startsWith('/uploads/')) {
+      response = await filesRouter(request, url);
+    } else {
+      return errorResponse(notFound());
     }
 
-    if (url.pathname.startsWith('/uploads/')) {
-      return filesRouter(request, url);
-    }
-
-    return errorResponse(notFound());
+    // Single CORS enforcement point: the routers emit the primary-origin
+    // defaults via json(); the edge stamps the allowlisted request origin
+    // (plus credentials) onto every actual response.
+    const cors = corsHeadersFor(request.headers.get('origin'));
+    for (const [key, value] of Object.entries(cors)) response.headers.set(key, value);
+    return response;
   },
 } as Parameters<typeof serve>[0]);
 
