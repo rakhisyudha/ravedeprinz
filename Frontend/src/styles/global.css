@@ -337,7 +337,7 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
   .note-thumb { grid-column:2; grid-row:2; width:112px; aspect-ratio:4/3; height:auto; margin-right:0; align-self:start; }
   .note h2 { margin:5px 0 10px; font-size:clamp(24px,8vw,30px); line-height:.92; }
   .note h2 + p { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .note p { max-width:none; margin:0; font:400 15px/1.5 var(--font-editorial); color:var(--text-longform); }
+  .note p { max-width:none; margin:0; font:400 var(--type-body-sm)/1.6 var(--font-ui); color:var(--text-muted); }
   .note-arrow { display:none; }
 }
 
@@ -413,11 +413,17 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .note-meta-read { color: var(--red); font-weight: 700; }
 .note-article-image { position: relative; width: 100%; height: 320px; margin-top: 28px; overflow: hidden; border: 3px solid var(--red); clip-path: polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px)); box-shadow: 8px 8px 0 var(--dark-red); background: var(--surface); }
 .note-article-image img { width:100%; height:100%; object-fit:cover; }
-.note-article-body { max-width: 700px; }
-.note-article-body p { margin: 0 0 26px; color: var(--text-longform); font: 400 var(--type-editorial)/1.75 var(--font-editorial); }
+.note-article-body { max-width: 68ch; }
+.note-article-body p { margin: 0 0 26px; color: var(--text-longform); font: 400 var(--type-editorial)/1.7 var(--font-editorial); }
 .note-article-body h2 { margin: 46px 0 20px; font-family:var(--font-display); font-size:var(--type-heading-sm); line-height:1.2; text-transform: uppercase; letter-spacing: .02em; }
 .note-article-body ul { margin: 0 0 26px; padding-left: 22px; }
 .note-article-body li { margin: 10px 0; color: var(--text-longform); font: 400 18px/1.7 var(--font-editorial); }
+.note-article-body li::marker { color: var(--red); }
+/* Pull quotes (`> ` lines): same reading size, italic serif voice, red rule
+   echoing the lede/intro treatment. Paragraph rhythm inside is tighter. */
+.note-article-body blockquote { margin: 32px 0; padding: 4px 0 4px 20px; border-left: 3px solid var(--red); }
+.note-article-body blockquote p { margin: 0 0 14px; font-style: italic; }
+.note-article-body blockquote p:last-child { margin-bottom: 0; }
 .note-article-body strong { color: var(--white); }
 .note-article-body em { color: var(--text); }
 .note-inline-image { display: block; max-width: 100%; height: auto; margin: 26px 0; border: 2px solid var(--red); box-shadow: 6px 6px 0 var(--dark-red); }
@@ -438,7 +444,7 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .note-share-copy:hover { border-color:var(--red); color:var(--red); }
 @media (max-width:700px) { .note-preview { grid-template-columns:1fr; } .note-preview-image { height:160px; border-right:0; border-bottom:2px solid var(--red); } .note-share { flex-direction:column; align-items:stretch; } }
 .note-article-body::selection, .note-article-head h1::selection { background: var(--red); color: var(--white); }
-@media (max-width: 700px) { .note-page { padding-top: 32px; } .note-article-toolbar { flex-direction: column; } .note-article-image { height: 200px; } .note-article-body p { font-size: 17px; line-height: 1.7; } }
+@media (max-width: 700px) { .note-page { padding-top: 32px; } .note-article-toolbar { flex-direction: column; } .note-article-image { height: 200px; } .note-article-body p { font-size: var(--type-editorial-sm); line-height: 1.6; } .note-article-body li { font-size: var(--type-editorial-sm); line-height: 1.6; } }
 
 /* Note article standalone header/footer — P5 clean + safe-area aware */
 .note-header { position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 24px 0; padding-left:max(24px, env(safe-area-inset-left)); padding-right:max(24px, env(safe-area-inset-right)); background:var(--black); border-bottom:1px solid rgba(255,255,255,.12); }

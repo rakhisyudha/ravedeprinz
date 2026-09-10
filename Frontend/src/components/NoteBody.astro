@@ -1,6 +1,7 @@
 ---
 // Port of the note body renderer: paragraphs, ## headings, dash lists,
-// and inline images / bold / italics. No markdown dependency on purpose.
+// > blockquotes, and inline images / bold / italics. No markdown
+// dependency on purpose.
 interface Props {
   body: string;
 }
@@ -33,6 +34,7 @@ function renderInline(text: string): Inline[] {
 
 type Block =
   | { kind: 'list'; items: Inline[][] }
+  | { kind: 'quote'; inlines: Inline[][] }
   | { kind: 'heading'; inline: Inline[]; rest: Inline[][] }
   | { kind: 'paras'; inlines: Inline[][] };
 
@@ -44,6 +46,9 @@ const blocks: Block[] = (body ?? '')
     const lines = block.split('\n').filter((l) => l.trim().length > 0);
     if (lines.every((l) => l.startsWith('- '))) {
       return { kind: 'list', items: lines.map((l) => renderInline(l.slice(2))) } as Block;
+    }
+    if (lines.every((l) => l.startsWith('> '))) {
+      return { kind: 'quote', inlines: lines.map((l) => renderInline(l.slice(2))) } as Block;
     }
     const first = lines[0] ?? '';
     if (first.startsWith('## ')) {
@@ -77,6 +82,27 @@ const blocks: Block[] = (body ?? '')
             </li>
           ))}
         </ul>
+      );
+    }
+    if (block.kind === 'quote') {
+      return (
+        <blockquote>
+          {block.inlines.map((inline, j) => (
+            <p>
+              {inline.map((part, k) =>
+                part.kind === 'image' ? (
+                  <img src={part.src} alt={part.alt} width={640} height={360} class="note-inline-image" loading="lazy" />
+                ) : part.kind === 'strong' ? (
+                  <strong>{part.text}</strong>
+                ) : part.kind === 'em' ? (
+                  <em>{part.text}</em>
+                ) : (
+                  part.text
+                ),
+              )}
+            </p>
+          ))}
+        </blockquote>
       );
     }
     if (block.kind === 'heading') {
