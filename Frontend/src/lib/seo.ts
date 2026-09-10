@@ -39,7 +39,7 @@ export function getNoteCanonicalUrl(note: Pick<Note, 'id' | 'slug'>, idFallback:
 }
 
 export function getNoteOgImageUrl(note: Pick<Note, 'id' | 'slug'>, idFallback: string): string {
-  return `${getNoteCanonicalUrl(note, idFallback)}/opengraph-image`;
+  return `${getNoteCanonicalUrl(note, idFallback)}/opengraph-image.jpg`;
 }
 
 export function absolutizeUpload(path: string | null | undefined): string | null {
