@@ -78,7 +78,7 @@
             <AdminField label="STACK" value={row.stack ?? ''} onChange={updateWork(index, 'stack')} />
             <AdminField label="COMPANY URL" value={row.company_url ?? ''} onChange={updateWork(index, 'company_url')} />
           </div>
-          <AdminField label="DESCRIPTION" textarea value={row.description ?? ''} onChange={updateWork(index, 'description')} />
+          <AdminField label="DESCRIPTION" textarea editor value={row.description ?? ''} onChange={updateWork(index, 'description')} />
           <button class="admin-nav-link touch-target" onclick={() => (work = work.filter((_, i) => i !== index))}>
             REMOVE
           </button>
@@ -99,7 +99,7 @@
             <AdminField label="INSTITUTION" value={row.institution ?? ''} onChange={updateEdu(index, 'institution')} />
             <AdminField label="DATE" value={row.date_label ?? ''} onChange={updateEdu(index, 'date_label')} />
           </div>
-          <AdminField label="DESCRIPTION" textarea value={row.description ?? ''} onChange={updateEdu(index, 'description')} />
+          <AdminField label="DESCRIPTION" textarea editor value={row.description ?? ''} onChange={updateEdu(index, 'description')} />
           <button class="admin-nav-link touch-target" onclick={() => (education = education.filter((_, i) => i !== index))}>
             REMOVE
           </button>

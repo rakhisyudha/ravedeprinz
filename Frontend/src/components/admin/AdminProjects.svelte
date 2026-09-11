@@ -65,7 +65,7 @@
       { id: 'existing', label: 'EXISTING', count: projects.length, content: existingTab },
     ]}
   />
-  <p class="auth-error" style="margin-top: 18px">{status}</p>
+  <p class={status.startsWith('ERROR') ? 'auth-error' : 'admin-hint'} style="margin-top: 18px">{status}</p>
 </section>
 
 {#snippet newTab()}
@@ -80,7 +80,7 @@
       <AdminField label="SOURCE URL" value={String(draft.source_url ?? '')} onChange={(v) => (draft = { ...draft, source_url: v })} />
     </div>
     <AdminImageUpload label="IMAGE" value={String(draft.image_url ?? '')} onChange={(v) => (draft = { ...draft, image_url: v })} {apiBase} />
-    <AdminField label="DESCRIPTION" textarea value={String(draft.description ?? '')} onChange={(v) => (draft = { ...draft, description: v })} />
+      <AdminField label="DESCRIPTION" textarea editor value={String(draft.description ?? '')} onChange={(v) => (draft = { ...draft, description: v })} />
     <button class="auth-button touch-target" onclick={() => saveRow(draft)}>CREATE PROJECT</button>
   </AdminSection>
 {/snippet}
@@ -100,7 +100,7 @@
             <AdminField label="SOURCE URL" value={String(project.source_url ?? '')} onChange={update(index, 'source_url')} />
           </div>
           <AdminImageUpload label="IMAGE" value={String(project.image_url ?? '')} onChange={update(index, 'image_url')} {apiBase} />
-          <AdminField label="DESCRIPTION" textarea value={String(project.description ?? '')} onChange={update(index, 'description')} />
+          <AdminField label="DESCRIPTION" textarea editor value={String(project.description ?? '')} onChange={update(index, 'description')} />
           <div class="admin-row-actions">
             <button class="admin-nav-link touch-target" onclick={() => saveRow(project)}>SAVE</button>
             <button class="admin-nav-link touch-target" onclick={() => remove(String(project.id))}>DELETE</button>

@@ -19,10 +19,14 @@ const adminNav = [
 <nav class="admin-nav" aria-label="CMS navigation">
   {adminNav.map(([href, label]) => {
     const active = href === '/admin' ? currentPath === '/admin' : currentPath === href || currentPath.startsWith(href + '/');
-    return (
-      <a href={href} class={`admin-nav-link touch-target${active ? ' is-active' : ''}`}>
-        {label}
-      </a>
-    );
+      return (
+        <a
+          href={href}
+          class={`admin-nav-link touch-target${active ? ' is-active' : ''}`}
+          aria-current={active ? 'page' : undefined}
+        >
+          {label}
+        </a>
+      );
   })}
 </nav>

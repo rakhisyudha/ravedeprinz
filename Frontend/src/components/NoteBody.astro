@@ -1,65 +1,15 @@
 ---
-// Port of the note body renderer: paragraphs, ## headings, dash lists,
-// > blockquotes, and inline images / bold / italics. No markdown
-// dependency on purpose.
+import { parseBlocks } from '../lib/markdown';
+import type { Block } from '../lib/markdown';
+// Note: block parsing lives in lib/markdown.ts (shared with the CMS
+// preview). Only the article rendering below is specific to this view.
 interface Props {
   body: string;
 }
 
 const { body } = Astro.props;
 
-type Inline = { kind: 'text'; text: string } | { kind: 'image'; src: string; alt: string } | { kind: 'strong' | 'em'; text: string };
-
-function renderInline(text: string): Inline[] {
-  const parts: Inline[] = [];
-  const regex = /(!\[[^\]]*\]\([^)]*\))|(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
-  let last = 0;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) parts.push({ kind: 'text', text: text.slice(last, match.index) });
-    if (match[1]) {
-      const src = match[1].match(/\(([^)]+)\)/)?.[1] ?? '';
-      const alt = match[1].match(/\[([^\]]*)\]/)?.[1] ?? '';
-      if (src) parts.push({ kind: 'image', src, alt });
-    } else if (match[2]) {
-      parts.push({ kind: 'strong', text: match[2].slice(2, -2) });
-    } else if (match[3]) {
-      parts.push({ kind: 'em', text: match[3].slice(1, -1) });
-    }
-    last = match.index + match[0].length;
-  }
-  if (last < text.length) parts.push({ kind: 'text', text: text.slice(last) });
-  return parts;
-}
-
-type Block =
-  | { kind: 'list'; items: Inline[][] }
-  | { kind: 'quote'; inlines: Inline[][] }
-  | { kind: 'heading'; inline: Inline[]; rest: Inline[][] }
-  | { kind: 'paras'; inlines: Inline[][] };
-
-const blocks: Block[] = (body ?? '')
-  .split(/\n{2,}/)
-  .map((b) => b.trim())
-  .filter((b) => b.length > 0)
-  .map((block) => {
-    const lines = block.split('\n').filter((l) => l.trim().length > 0);
-    if (lines.every((l) => l.startsWith('- '))) {
-      return { kind: 'list', items: lines.map((l) => renderInline(l.slice(2))) } as Block;
-    }
-    if (lines.every((l) => l.startsWith('> '))) {
-      return { kind: 'quote', inlines: lines.map((l) => renderInline(l.slice(2))) } as Block;
-    }
-    const first = lines[0] ?? '';
-    if (first.startsWith('## ')) {
-      return {
-        kind: 'heading',
-        inline: renderInline(first.slice(3)),
-        rest: lines.slice(1).map((l) => renderInline(l)),
-      } as Block;
-    }
-    return { kind: 'paras', inlines: lines.map((l) => renderInline(l)) } as Block;
-  });
+const blocks: Block[] = parseBlocks(body);
 ---
 <div class="note-article-body">
   {blocks.map((block) => {

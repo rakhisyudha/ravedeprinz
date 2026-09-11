@@ -3,6 +3,7 @@
   import { adminApi } from '../../lib/admin';
   import { readingMinutes } from '../../lib/readingTime';
   import AdminField from './AdminField.svelte';
+import AdminMarkdownPreview from './AdminMarkdownPreview.svelte';
   import AdminSection from './AdminSection.svelte';
   import AdminTabs from './AdminTabs.svelte';
   import AdminAccordion from './AdminAccordion.svelte';
@@ -66,7 +67,7 @@
       { id: 'existing', label: 'NOTES', count: notes.length, content: existingTab },
     ]}
   />
-  <p class="auth-error" style="margin-top: 18px">{status}</p>
+  <p class={status.startsWith('ERROR') ? 'auth-error' : 'admin-hint'} style="margin-top: 18px">{status}</p>
 </section>
 
 {#snippet newTab()}
@@ -79,7 +80,18 @@
       <div class="admin-field"><span class="admin-field-label">READ (COMPUTED)</span><span class="admin-read-preview">{readPreview(draft)}</span></div>
     </div>
     <AdminImageUpload label="COVER IMAGE" value={String(draft.image_url ?? '')} onChange={(v) => (draft = { ...draft, image_url: v })} {apiBase} />
-    <AdminField label="BODY (MARKDOWN)" textarea value={String(draft.body ?? '')} onChange={(v) => (draft = { ...draft, body: v })} />
+    <AdminTabs
+      tabs={[
+        { id: 'write', label: 'WRITE', content: draftWrite },
+        { id: 'preview', label: 'PREVIEW', content: draftPreview },
+      ]}
+    />
+    {#snippet draftWrite()}
+      <AdminField label="BODY (MARKDOWN)" textarea editor value={String(draft.body ?? '')} onChange={(v) => (draft = { ...draft, body: v })} />
+    {/snippet}
+    {#snippet draftPreview()}
+      <AdminMarkdownPreview value={String(draft.body ?? '')} />
+    {/snippet}
     <div class="admin-row-actions">
       <button class="auth-button touch-target" onclick={() => saveRow(draft, false)}>SAVE DRAFT</button>
       <button class="auth-button touch-target" onclick={() => saveRow(draft, true)}>PUBLISH</button>
@@ -104,7 +116,18 @@
             <div class="admin-field"><span class="admin-field-label">READ (COMPUTED)</span><span class="admin-read-preview">{readPreview(note)}</span></div>
           </div>
           <AdminImageUpload label="COVER IMAGE" value={String(note.image_url ?? '')} onChange={update(index, 'image_url')} {apiBase} />
-          <AdminField label="BODY (MARKDOWN)" textarea value={String(note.body ?? '')} onChange={update(index, 'body')} />
+          <AdminTabs
+            tabs={[
+              { id: 'write', label: 'WRITE', content: noteWrite },
+              { id: 'preview', label: 'PREVIEW', content: notePreview },
+            ]}
+          />
+          {#snippet noteWrite()}
+            <AdminField label="BODY (MARKDOWN)" textarea editor value={String(note.body ?? '')} onChange={update(index, 'body')} />
+          {/snippet}
+          {#snippet notePreview()}
+            <AdminMarkdownPreview value={String(note.body ?? '')} />
+          {/snippet}
           <div class="admin-row-actions">
             <span class="auth-error" style="margin: 0">{note.published ? 'PUBLISHED' : 'DRAFT'}</span>
             <button class="admin-nav-link touch-target" onclick={() => saveRow(note, false)}>SAVE</button>
