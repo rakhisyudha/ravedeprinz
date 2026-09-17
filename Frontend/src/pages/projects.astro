@@ -26,8 +26,8 @@ const projects =
     featured: false,
   }));
 
-const statusClass = { FINISHED: 'status-shipped', 'IN PROGRESS': 'status-in-progress', SHELVED: 'status' } as const;
-const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
+const statusVariants = { FINISHED: 'finished', 'IN PROGRESS': 'in-progress', SHELVED: 'shelved' } as const;
+const deploymentVariants = { DEPLOYED: 'deployed', NOT_DEPLOYED: 'not-deployed' } as const;
 ---
 <Base title="PROJECTS" currentPath="/projects">
   <PageHead index="BUILD LOG / 004" title="PROJECTS" intro="Things made while learning how to make better software. Finished, experimental, paused, and still worth remembering.">
@@ -35,8 +35,9 @@ const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
       {projects.map((project, index) => {
         const slug = project.slug?.trim() || slugify(project.title);
         const image = project.image_url || projectImages[slug];
-        const deployed = project.title !== 'Web Auction';
-        const stickerKind = stickerKinds[index % stickerKinds.length];
+        const statusVariant = statusVariants[project.status] ?? 'shelved';
+        const deploymentVariant = deploymentVariants[project.deployment_status] ?? 'not-deployed';
+        const deploymentLabel = project.deployment_status === 'DEPLOYED' ? 'DEPLOYED' : 'NOT DEPLOYED';
         return (
           <article class="record project-record lift">
             <span class="record-number">0{index + 1}<small>{project.year}</small></span>
@@ -46,8 +47,10 @@ const stickerKinds = ['solid', 'outline', 'text', 'stamp'] as const;
                   <div class="project-chrome" aria-hidden="true"><i /><i /><i /></div>
                   {image && <div class="project-image"><img src={image} alt={`${project.title} preview`} loading="lazy" /></div>}
                 </div>
-                <span class={`project-sticker status sticker-${stickerKind} sticker-status-slot ${statusClass[project.status]}`}>{project.status}</span>
-                <span class={`deploy-sticker deploy-${stickerKinds[(index + 1) % stickerKinds.length]} deploy-slot ${deployed ? '' : 'deploy-sticker-pending'}`}>{deployed ? 'DEPLOYED' : 'NOT DEPLOYED'}</span>
+                <div class="project-status-badges" aria-label={`Project status: ${project.status}; ${deploymentLabel}`}>
+                  <span class={`project-status-badge project-status-${statusVariant}`}>{project.status}</span>
+                  <span class={`project-status-badge project-status-${deploymentVariant}`}>{deploymentLabel}</span>
+                </div>
                 <span class={`project-index index-slot index-style-${index % 4}`}>0{index + 1} / {project.year}</span>
               </div>
               <h2>{project.title}</h2>
