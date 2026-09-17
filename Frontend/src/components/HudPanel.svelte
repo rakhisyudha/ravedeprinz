@@ -71,7 +71,7 @@
       {String(years).padStart(2, '0')}
     </span>
     <span
-      class="display mt-8 block max-w-[220px] text-3xl leading-[0.86] text-white sm:text-4xl hud-label-in"
+      class="display mt-8 block max-w-[220px] text-3xl leading-[0.86] sm:text-4xl hud-label-in"
       class:hud-label-on={shown}
     >
       {labelParts[0] ?? ''} <strong class="hud-of">0F</strong> {labelParts.slice(1).join(' ')}

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { getTheme, toggleTheme, type Theme } from '../lib/theme';
+
   // Port of components/Shell.tsx (menu half). Interaction parity:
   // clip-path wipe open/close, staggered rows with split numeral/label
   // timing, delayed close + login entrances, scroll-aware header.
@@ -39,7 +41,16 @@
 
   let open = $state(false);
   let scrolled = $state(false);
+  let theme: Theme = $state('dark');
   let preview = $state(current.toUpperCase());
+
+  $effect(() => {
+    theme = getTheme();
+  });
+
+  function handleThemeToggle() {
+    theme = toggleTheme();
+  }
 
   // Independent active + hover indicators: each row reserves a fixed
   // caret slot between number and label, so showing or hiding a `>`
@@ -112,18 +123,45 @@
 <header class={`site-header${scrolled ? ' is-scrolled' : ''}`}>
   <a href="/" class="site-mark" aria-label="ravedeprinz home"><strong>r</strong>avedeprinz_</a>
   <div class="header-state"><span>{current}</span></div>
-  <button
-    type="button"
-    class={`menu-trigger${open ? ' is-open' : ''}`}
-    aria-expanded={open}
-    onclick={() => (open = !open)}
-  >
-    <span class="bracket bracket-left" class:open-bracket={open}>[</span>
-    <span class="menu-trigger-label">
-      {#key open}<span class="menu-trigger-swap">{open ? 'CLOSE' : 'INDEX'}</span>{/key}
-    </span>
-    <span class="bracket bracket-right" class:open-bracket={open}>]</span>
-  </button>
+  <div class="header-actions">
+    <button
+      type="button"
+      class="menu-trigger theme-toggle"
+      data-theme-active={theme}
+      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      onclick={handleThemeToggle}
+    >
+      <span class="bracket bracket-left">[</span>
+      <span class="menu-trigger-label theme-icon-label">
+        {#key theme}
+          <span class="theme-icon theme-icon-moon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M20.5 15.4A8.5 8.5 0 0 1 8.6 3.5a8.5 8.5 0 1 0 11.9 11.9Z" />
+            </svg>
+          </span>
+          <span class="theme-icon theme-icon-sun" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <circle cx="12" cy="12" r="3.5" />
+              <path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6m11 11 1.6 1.6M2 12h2.2m15.6 0H22M4.9 19.1l1.6-1.6m11-11 1.6-1.6" />
+            </svg>
+          </span>
+        {/key}
+      </span>
+      <span class="bracket bracket-right">]</span>
+    </button>
+    <button
+      type="button"
+      class={`menu-trigger${open ? ' is-open' : ''}`}
+      aria-expanded={open}
+      onclick={() => (open = !open)}
+    >
+      <span class="bracket bracket-left" class:open-bracket={open}>[</span>
+      <span class="menu-trigger-label">
+        {#key open}<span class="menu-trigger-swap">{open ? 'CLOSE' : 'INDEX'}</span>{/key}
+      </span>
+      <span class="bracket bracket-right" class:open-bracket={open}>]</span>
+    </button>
+  </div>
 </header>
 
 {#if open}
@@ -168,6 +206,15 @@
 {/if}
 
 <style>
+  .header-actions { position:relative; z-index:1; display:flex; align-items:center; gap:12px; }
+  .theme-toggle { flex-shrink:0; }
+  @media (max-width:900px) {
+    .header-actions { gap:10px; }
+  }
+  @media (max-width:600px) {
+    .header-actions { gap:8px; }
+  }
+
   /* Trigger label swap (was AnimatePresence y-fade in Shell). */
   .menu-trigger-swap { display: inline-block; animation: trigger-swap 0.2s ease-out; }
   @keyframes trigger-swap { from { opacity: 0; transform: translateY(6px); } }

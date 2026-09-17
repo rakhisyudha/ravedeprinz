@@ -38,11 +38,58 @@ const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigatio
 ---
 <html lang="en">
   <head>
+    <!--
+      This is intentionally a one-time, blocking bootstrap. The client router
+      swaps the incoming document during soft navigations, so the active theme
+      is copied to the incoming <html> before that swap. Hard navigations still
+      resolve persisted storage before the first paint.
+    -->
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        const current = root.getAttribute('data-theme');
+        let theme = current === 'light' || current === 'dark' ? current : 'dark';
+
+        if (!current) {
+          try {
+            const stored = window.localStorage.getItem('ravedeprinz-theme');
+            if (stored === 'dark' || stored === 'light') {
+              theme = stored;
+            }
+          } catch {
+            // Dark is the safe fallback when storage is unavailable.
+          }
+        }
+
+        root.setAttribute('data-theme', theme);
+
+        function syncThemeControls() {
+          const activeTheme = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+          const lightIsNext = activeTheme === 'dark';
+          document.querySelectorAll('.theme-toggle').forEach((button) => {
+            button.setAttribute('data-theme-active', activeTheme);
+            button.setAttribute('aria-label', lightIsNext ? 'Switch to light theme' : 'Switch to dark theme');
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', syncThemeControls, { once: true });
+        document.addEventListener('astro:page-load', syncThemeControls);
+
+        document.addEventListener('astro:before-swap', (event) => {
+          const nextRoot = event.newDocument?.documentElement;
+          const activeTheme = root.getAttribute('data-theme');
+          if (!nextRoot || (activeTheme !== 'dark' && activeTheme !== 'light')) return;
+          nextRoot.setAttribute('data-theme', activeTheme);
+        });
+      })();
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/ravedeprinz.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/ravedeprinz.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

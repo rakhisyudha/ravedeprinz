@@ -14,15 +14,60 @@ const { currentPath = '/login' } = Astro.props;
 <header class={`site-header`}>
   <a href="/" class="site-mark" aria-label="ravedeprinz home"><strong>r</strong>avedeprinz_</a>
   <div class="header-state"><span>SIGN IN</span></div>
-  <a
-    href="/"
-    class="menu-trigger"
-    aria-label="Back to home"
-  >
-    <span class="bracket bracket-left">[</span>
-    <span class="menu-trigger-label">
-      <span class="menu-trigger-swap">HOME</span>
-    </span>
-    <span class="bracket bracket-right">]</span>
-  </a>
+  <div class="auth-header-actions">
+    <button
+      type="button"
+      class="menu-trigger theme-toggle"
+      data-auth-theme-toggle
+      data-theme-active="dark"
+      aria-label="Switch to light theme"
+    >
+      <span class="bracket bracket-left">[</span>
+      <span class="menu-trigger-label theme-icon-label">
+        <span class="theme-icon theme-icon-moon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M20.5 15.4A8.5 8.5 0 0 1 8.6 3.5a8.5 8.5 0 1 0 11.9 11.9Z" />
+          </svg>
+        </span>
+        <span class="theme-icon theme-icon-sun" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="12" cy="12" r="3.5" />
+            <path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6m11 11 1.6 1.6M2 12h2.2m15.6 0H22M4.9 19.1l1.6-1.6m11-11 1.6-1.6" />
+          </svg>
+        </span>
+      </span>
+      <span class="bracket bracket-right">]</span>
+    </button>
+    <a href="/" class="menu-trigger" aria-label="Back to home">
+      <span class="bracket bracket-left">[</span>
+      <span class="menu-trigger-label">
+        <span class="menu-trigger-swap">HOME</span>
+      </span>
+      <span class="bracket bracket-right">]</span>
+    </a>
+  </div>
 </header>
+
+<script>
+  import { getTheme, toggleTheme } from '../lib/theme';
+
+  function bindThemeToggle() {
+    const button = document.querySelector<HTMLButtonElement>('[data-auth-theme-toggle]');
+    if (!button || button.dataset.themeBound === 'true') return;
+
+    function renderThemeToggle(theme: ReturnType<typeof getTheme>) {
+      button.dataset.themeActive = theme;
+      const lightIsNext = theme === 'dark';
+      button.setAttribute('aria-label', lightIsNext ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+
+    button.dataset.themeBound = 'true';
+    renderThemeToggle(getTheme());
+    button.addEventListener('click', () => {
+      renderThemeToggle(toggleTheme());
+    });
+  }
+
+  bindThemeToggle();
+  document.addEventListener('astro:page-load', bindThemeToggle);
+</script>

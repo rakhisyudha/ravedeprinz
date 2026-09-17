@@ -5,4 +5,5 @@ dev-server.log
 dummy/
 Dummy/
 .commandcode/
-
+.kiro/
+*.md
