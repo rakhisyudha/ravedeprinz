@@ -230,9 +230,21 @@ export async function updateNote(id: string, body: Row): Promise<{ row: Row | nu
   }
   let published: boolean | undefined;
   if (typeof body.published === 'boolean') {
-    published = body.published;
-    update.published = published;
-    update.published_at = published ? new Date().toISOString() : null;
+    // published_at is the stable first-publish date: it only moves on an
+    // actual publish-state transition. Re-saving an already-published note
+    // (the admin UI always echoes the full row, including `published: true`)
+    // must NOT bump the visible date.
+    const current = (await sql`select published from notes where id = ${id} limit 1`) as Array<{
+      published: boolean;
+    }>;
+    const wasPublished = current[0]?.published ?? false;
+    const wantPublished = body.published;
+    if (wantPublished !== wasPublished) {
+      update.published = wantPublished;
+      update.published_at = wantPublished ? new Date().toISOString() : null;
+      if (wantPublished) published = true;
+      else published = false;
+    }
   }
   const rows = (await sql`
     update notes set ${sql(update)} where id = ${id} returning *

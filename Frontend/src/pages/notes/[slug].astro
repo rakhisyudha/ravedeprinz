@@ -28,14 +28,14 @@ const url = note ? getNoteCanonicalUrl(note, slug ?? '') : `${siteUrl}/notes`;
 const description = note ? cleanDescription(note.body, note.subtitle) : '';
 const author = note?.author?.trim() || 'Rakhis de Yudha';
 const minutes = note ? readingMinutes(note.body ?? '', note.image_url) : 0;
+const displayDateRaw = note?.created_at ?? note?.published_at ?? null;
 const date =
-  note?.published_at && !Number.isNaN(new Date(note.published_at).getTime())
-    ? new Date(note.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+  displayDateRaw && !Number.isNaN(new Date(displayDateRaw).getTime())
+    ? new Date(displayDateRaw).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
     : '';
-// Story date is the immutable note creation date, distinct from the
-// on-page article date which still uses published_at for SEO/meta. The
-// Story shows the original creation date so an edited note still reads
-// as the same transmission when shared.
+// Human date is the immutable creation date so edits never move it;
+// published_at stays for SEO/meta (datePublished, OG). Story shares the
+// same creation date.
 const storyCreatedDate =
   note?.created_at && !Number.isNaN(new Date(note.created_at).getTime())
     ? new Date(note.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
