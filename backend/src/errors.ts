@@ -68,7 +68,11 @@ export function toApiError(error: unknown): ApiError {
   return { status: 500, message: 'Unexpected server error' };
 }
 
-export function errorResponse(error: ApiError | { status: number; message: string }): Response {
-  const body = error.status === 404 ? { error: 'Not found' } : { error: error.message };
-  return json(body, error.status);
+export function errorResponse(error: ApiError | { status: number; message: string; field?: string }): Response {
+  if (error.status === 404) return json({ error: 'Not found' }, 404);
+  // `field` is passed through untouched when present so the admin UI can
+  // route a validation message to the offending input. Callers that omit it
+  // keep their existing body shape.
+  const field = 'field' in error ? error.field : undefined;
+  return json(field ? { error: error.message, field } : { error: error.message }, error.status);
 }

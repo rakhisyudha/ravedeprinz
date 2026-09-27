@@ -8,6 +8,9 @@ export type SiteSettings = {
   footer_label: string;
   hero_tagline: string;
   contact_email: string | null;
+  cv_url: string | null;
+  availability_status: 'OPEN_TO_WORK' | 'OPEN_TO_FREELANCE' | 'NOT_AVAILABLE';
+  availability_note: string | null;
   updated_at: string;
 };
 
@@ -102,6 +105,10 @@ export type Project = {
   featured: boolean;
   visible: boolean;
   published: boolean;
+  problem: string;
+  what_built: string;
+  key_decision: string;
+  outcome: string;
   created_at: string;
   updated_at: string;
 };

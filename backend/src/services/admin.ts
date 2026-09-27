@@ -1,5 +1,11 @@
 import { sql } from '../db';
 import { ensureUniqueSlug, slugify } from '../utils/slug';
+import {
+  validateCaseStudy,
+  validateSortOrder,
+  type FieldError,
+  type SiteSettingsValue,
+} from './validation';
 
 // Admin content writes. Semantics mirror the previous Supabase-backed API
 // exactly (including its quirks: skills wipe+insert, work delete-diff,
@@ -7,7 +13,7 @@ import { ensureUniqueSlug, slugify } from '../utils/slug';
 // SQL-free; all queries live here.
 
 export type Row = Record<string, unknown>;
-export type AdminError = { status: 400; message: string };
+export type AdminError = { status: 400; message: string; field?: string };
 
 // Columns the server owns. Admin forms echo fully-loaded rows (id,
 // created_at, updated_at included), so every client-supplied object is
@@ -161,22 +167,139 @@ export async function getAdminProjects(): Promise<{ projects: Row[] }> {
   return { projects: rows as Row[] };
 }
 
-export async function createProject(body: Row): Promise<Row> {
-  const rows = (await sql`insert into projects ${sql(writable(body))} returning *`) as Row[];
-  return rows[0]!;
+// --- Project write validation -------------------------------------------
+// Both writes run every check before any SQL, so a rejected request leaves
+// the table byte-for-byte unchanged. The slug conflict is pre-checked for a
+// precise message and the unique-violation code is mapped to the same error
+// so a race between the two behaves identically.
+const UNIQUE_VIOLATION = '23505';
+
+function isUniqueViolation(error: unknown): boolean {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : '';
+  if (code === UNIQUE_VIOLATION) return true;
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes(UNIQUE_VIOLATION) || /duplicate key value|already exists/i.test(message);
 }
 
-export async function updateProject(id: string, body: Row): Promise<Row | null> {
-  const rows = (await sql`
-    update projects set ${sql(writable(body))}, updated_at = now()
-    where id = ${id} returning *
-  `) as Row[];
-  return rows[0] ?? null;
+function slugConflict(slug: string): FieldError {
+  return {
+    status: 400,
+    field: 'slug',
+    message: `Slug "${slug}" is already used by another project`,
+  };
+}
+
+async function assertSlugAvailable(slug: unknown, excludeId?: string): Promise<FieldError | null> {
+  if (typeof slug !== 'string') return null;
+  const trimmed = slug.trim();
+  if (trimmed === '') return null;
+  const rows = excludeId
+    ? await sql`select 1 from projects where slug = ${trimmed} and id <> ${excludeId} limit 1`
+    : await sql`select 1 from projects where slug = ${trimmed} limit 1`;
+  return rows.length > 0 ? slugConflict(trimmed) : null;
+}
+
+function validateProjectBody(body: Row): FieldError | null {
+  const caseStudy = validateCaseStudy(body);
+  if (caseStudy) return caseStudy;
+  // A body that does not touch sort_order keeps the stored (or default)
+  // value; only a present value is range-checked.
+  return 'sort_order' in body ? validateSortOrder(body.sort_order) : null;
+}
+
+export async function createProject(body: Row): Promise<Row | FieldError> {
+  const invalid = validateProjectBody(body);
+  if (invalid) return invalid;
+  const conflict = await assertSlugAvailable(body.slug);
+  if (conflict) return conflict;
+  try {
+    const rows = (await sql`insert into projects ${sql(writable(body))} returning *`) as Row[];
+    return rows[0]!;
+  } catch (error) {
+    if (isUniqueViolation(error)) return slugConflict(String(body.slug ?? '').trim());
+    throw error;
+  }
+}
+
+export async function updateProject(id: string, body: Row): Promise<Row | null | FieldError> {
+  const invalid = validateProjectBody(body);
+  if (invalid) return invalid;
+  if (body.slug !== undefined) {
+    const conflict = await assertSlugAvailable(body.slug, id);
+    if (conflict) return conflict;
+  }
+  try {
+    const rows = (await sql`
+      update projects set ${sql(writable(body))}, updated_at = now()
+      where id = ${id} returning *
+    `) as Row[];
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isUniqueViolation(error)) return slugConflict(String(body.slug ?? '').trim());
+    throw error;
+  }
 }
 
 export async function deleteProject(id: string): Promise<number> {
   const rows = await sql`delete from projects where id = ${id} returning id`;
   return rows.length;
+}
+
+// ---------------------------------------------------------------------------
+// Site settings (singleton). Only the four allowlisted columns are ever
+// written; every other column stays server-owned, so this endpoint can
+// never touch site_name, the hero tagline, or the timestamps.
+// ---------------------------------------------------------------------------
+
+const SITE_SETTINGS_DEFAULTS: SiteSettingsValue = {
+  contact_email: null,
+  cv_url: null,
+  availability_status: 'OPEN_TO_WORK',
+  availability_note: null,
+};
+
+export async function getAdminSiteSettings(): Promise<SiteSettingsValue> {
+  const rows = (await sql`
+    select contact_email, cv_url, availability_status, availability_note
+    from site_settings limit 1
+  `) as Array<Partial<SiteSettingsValue>>;
+  const row = rows[0];
+  if (!row) return { ...SITE_SETTINGS_DEFAULTS };
+  return {
+    contact_email: row.contact_email ?? null,
+    cv_url: row.cv_url ?? null,
+    availability_status: row.availability_status ?? SITE_SETTINGS_DEFAULTS.availability_status,
+    availability_note: row.availability_note ?? null,
+  };
+}
+
+/** Runs only after validation, so a rejected update writes nothing. */
+export async function putAdminSiteSettings(value: SiteSettingsValue): Promise<SiteSettingsValue> {
+  await sql.begin(async (tx) => {
+    const existing = (await tx`select id from site_settings limit 1`) as Array<{ id: string }>;
+    if (existing.length > 0) {
+      await tx`
+        update site_settings set
+          contact_email = ${value.contact_email},
+          cv_url = ${value.cv_url},
+          availability_status = ${value.availability_status},
+          availability_note = ${value.availability_note},
+          updated_at = now()
+        where id = ${existing[0]!.id}
+      `;
+      return;
+    }
+    await tx`
+      insert into site_settings (contact_email, cv_url, availability_status, availability_note)
+      values (
+        ${value.contact_email}, ${value.cv_url},
+        ${value.availability_status}, ${value.availability_note}
+      )
+    `;
+  });
+  return getAdminSiteSettings();
 }
 
 // ---------------------------------------------------------------------------

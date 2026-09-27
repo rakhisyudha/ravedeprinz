@@ -2,8 +2,9 @@ import { authenticate, requireAdmin, type SessionUser } from '../auth/session';
 import { errorResponse, isConnectionError, json, notFound, toApiError } from '../errors';
 import { logAudit } from '../services/audit';
 import * as admin from '../services/admin';
+import { validateSiteSettings } from '../services/validation';
 import * as users from '../services/users';
-import { storeUpload } from '../services/upload';
+import { storeDocument, storeUpload } from '../services/upload';
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {
   try {
@@ -15,8 +16,10 @@ async function readJson(request: Request): Promise<Record<string, unknown>> {
 }
 
 // Write failures surface as 400 (mirroring the previous API); only
-// connection-level failures become 503/500.
-type RouteError = { status: number; message: string };
+// connection-level failures become 503/500. A `field` key, when the service
+// supplies one, is passed through by errorResponse so the admin UI can route
+// the message to the offending input.
+type RouteError = { status: number; message: string; field?: string };
 
 function dbError(label: string, error: unknown): RouteError {
   const message = error instanceof Error ? error.message : String(error);
@@ -245,10 +248,39 @@ export async function adminCmsRouter(request: Request, url: URL): Promise<Respon
       }
     }
 
+    // ---- Contact settings (singleton site_settings row) ----
+    if (path === '/api/admin/site-settings') {
+      if (method === 'GET') return json(await admin.getAdminSiteSettings());
+      if (method === 'PUT') {
+        const body = await readJson(request);
+        // Validation is total: on failure nothing is written, so the stored
+        // row keeps every previous value.
+        const validated = validateSiteSettings(body);
+        if (!validated.ok) return errorResponse(validated.error);
+        const saved = await guard('site_settings', () =>
+          admin.putAdminSiteSettings(validated.value),
+        );
+        if (isApiError(saved)) return errorResponse(saved);
+        await logAudit(user, 'UPDATE', 'site_settings');
+        return json(saved);
+      }
+    }
+
     // ---- Upload (admin-only; same validation contract as before) ----
     if (path === '/api/admin/upload' && method === 'POST') {
       const form = await request.formData().catch(() => null);
       const result = await storeUpload(form?.get('file') ?? null);
+      if (!result.ok) return errorResponse({ status: result.status, message: result.message });
+      await logAudit(user, 'CREATE', 'upload', result.url);
+      return json({ url: result.url });
+    }
+
+    // ---- CV upload. Never writes cv_url itself: the URL is persisted
+    // through the site-settings PUT, so a failed upload can never change
+    // the stored value (12.8). ----
+    if (path === '/api/admin/upload/cv' && method === 'POST') {
+      const form = await request.formData().catch(() => null);
+      const result = await storeDocument(form?.get('file') ?? null);
       if (!result.ok) return errorResponse({ status: result.status, message: result.message });
       await logAudit(user, 'CREATE', 'upload', result.url);
       return json({ url: result.url });

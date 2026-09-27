@@ -20,6 +20,7 @@ export const SERVE_TYPES: Record<string, string> = {
   png: 'image/png',
   webp: 'image/webp',
   gif: 'image/gif',
+  pdf: 'application/pdf',
 };
 
 // Real MIME from file magic bytes — never the extension or Content-Type.
@@ -52,6 +53,35 @@ export function sniffMime(bytes: Uint8Array): { mime: string; ext: string } | nu
 export type UploadResult =
   | { ok: true; url: string }
   | { ok: false; status: 400 | 413 | 415; message: string };
+
+// PDF magic bytes, kept separate from sniffMime on purpose: the image
+// sniffer must never accept a document, so PDFs are only reachable through
+// storeDocument (the CV upload field).
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d] as const; // %PDF-
+
+export function sniffPdf(bytes: Uint8Array): boolean {
+  if (bytes.length < PDF_MAGIC.length) return false;
+  return PDF_MAGIC.every((byte, index) => bytes[index] === byte);
+}
+
+export async function storeDocument(file: unknown): Promise<UploadResult> {
+  if (!(file instanceof File)) {
+    return { ok: false, status: 400, message: 'No file provided' };
+  }
+  if (file.size > MAX_SIZE) {
+    return { ok: false, status: 413, message: 'File too large (max 5MB)' };
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!sniffPdf(new Uint8Array(buffer))) {
+    return { ok: false, status: 415, message: 'Unsupported file type' };
+  }
+
+  // Client names are never trusted: timestamp + random id + fixed extension.
+  const name = `${Date.now()}_${randomUUID().replace(/-/g, '')}.pdf`;
+  await mkdir(UPLOADS_DIR, { recursive: true });
+  await Bun.write(join(UPLOADS_DIR, name), buffer);
+  return { ok: true, url: `/uploads/${name}` };
+}
 
 export async function storeUpload(file: unknown): Promise<UploadResult> {
   if (!(file instanceof File)) {

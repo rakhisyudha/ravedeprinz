@@ -25,6 +25,20 @@ export async function contentRouter(request: Request, url: URL): Promise<Respons
     const handler = handlers[url.pathname];
     if (handler) return json(await handler());
 
+    if (url.pathname.startsWith('/api/content/projects/')) {
+      const raw = url.pathname.slice('/api/content/projects/'.length);
+      if (!raw || raw.includes('/')) return errorResponse(notFound());
+      let slug: string;
+      try {
+        slug = decodeURIComponent(raw);
+      } catch {
+        return errorResponse(notFound());
+      }
+      const project = await content.getProjectBySlug(slug);
+      if (!project) return errorResponse(notFound());
+      return json(project);
+    }
+
     if (url.pathname.startsWith('/api/content/notes/')) {
       const key = url.pathname.split('/').pop() ?? '';
       if (!key) return errorResponse(notFound());

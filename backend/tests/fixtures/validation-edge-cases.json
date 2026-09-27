@@ -1,0 +1,94 @@
+{
+  "_comment": "Shared edge-case table for the case-study length and order validators. Both Backend/tests/properties/*.test.ts and Frontend/tests/properties/admin-*-validation.test.ts build identical inputs from it, so the two validators are provably in agreement. Case-study fields are described by length (repeated 'a') instead of literal strings to keep the table readable.",
+  "caseStudyMax": 10000,
+  "sortOrderMin": 0,
+  "sortOrderMax": 9999,
+  "caseStudy": [
+    {
+      "label": "all fields empty",
+      "lengths": { "problem": 0, "what_built": 0, "key_decision": 0, "outcome": 0 },
+      "valid": true,
+      "field": null
+    },
+    {
+      "label": "every field exactly at the limit",
+      "lengths": { "problem": 10000, "what_built": 10000, "key_decision": 10000, "outcome": 10000 },
+      "valid": true,
+      "field": null
+    },
+    {
+      "label": "problem one character over the limit",
+      "lengths": { "problem": 10001, "what_built": 0, "key_decision": 0, "outcome": 0 },
+      "valid": false,
+      "field": "problem"
+    },
+    {
+      "label": "what_built one character over the limit",
+      "lengths": { "problem": 0, "what_built": 10001, "key_decision": 0, "outcome": 0 },
+      "valid": false,
+      "field": "what_built"
+    },
+    {
+      "label": "key_decision far over the limit",
+      "lengths": { "problem": 0, "what_built": 0, "key_decision": 12000, "outcome": 0 },
+      "valid": false,
+      "field": "key_decision"
+    },
+    {
+      "label": "outcome one character under the limit",
+      "lengths": { "problem": 0, "what_built": 0, "key_decision": 0, "outcome": 9999 },
+      "valid": true,
+      "field": null
+    },
+    {
+      "label": "two fields over the limit reports the first one",
+      "lengths": { "problem": 10001, "what_built": 10001, "key_decision": 10001, "outcome": 10001 },
+      "valid": false,
+      "field": "problem"
+    },
+    {
+      "label": "only what_built over the limit while key_decision and outcome are also over",
+      "lengths": { "problem": 0, "what_built": 10001, "key_decision": 10001, "outcome": 10001 },
+      "valid": false,
+      "field": "what_built"
+    },
+    {
+      "label": "problem within the limit while later fields are over",
+      "lengths": { "problem": 10000, "what_built": 0, "key_decision": 10001, "outcome": 10001 },
+      "valid": false,
+      "field": "key_decision"
+    },
+    {
+      "label": "problem and what_built within the limit while outcome is over",
+      "lengths": { "problem": 10000, "what_built": 10000, "key_decision": 0, "outcome": 12000 },
+      "valid": false,
+      "field": "outcome"
+    }
+  ],
+  "order": [
+    { "label": "lower bound as a number", "value": 0, "valid": true },
+    { "label": "upper bound as a number", "value": 9999, "valid": true },
+    { "label": "middle of the range", "value": 42, "valid": true },
+    { "label": "upper bound as a float with no fraction", "value": 9999.0, "valid": true },
+    { "label": "digits as a string", "value": "12", "valid": true },
+    { "label": "digits as a padded string", "value": " 12 ", "valid": true },
+    { "label": "zero as a string", "value": "0", "valid": true },
+    { "label": "upper bound as a string", "value": "9999", "valid": true },
+    { "label": "one over the upper bound", "value": 10000, "valid": false },
+    { "label": "far over the upper bound", "value": 123456, "valid": false },
+    { "label": "negative number", "value": -1, "valid": false },
+    { "label": "fractional number", "value": 1.5, "valid": false },
+    { "label": "empty string", "value": "", "valid": false },
+    { "label": "whitespace-only string", "value": "   ", "valid": false },
+    { "label": "non-numeric string", "value": "abc", "valid": false },
+    { "label": "mixed string", "value": "12a", "valid": false },
+    { "label": "signed string", "value": "+12", "valid": false },
+    { "label": "exponent string", "value": "1e3", "valid": false },
+    { "label": "decimal string", "value": "1.5", "valid": false },
+    { "label": "over the upper bound as a string", "value": "10000", "valid": false },
+    { "label": "negative string", "value": "-1", "valid": false },
+    { "label": "null", "value": null, "valid": false },
+    { "label": "boolean", "value": true, "valid": false },
+    { "label": "object", "value": {}, "valid": false }
+  ]
+}

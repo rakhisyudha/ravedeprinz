@@ -61,11 +61,22 @@ export async function getProjects(): Promise<{ projects: Project[] }> {
   return { projects: rows as Project[] };
 }
 
+// Exact, case-sensitive match (Postgres text `=` is) and only for rows a
+// visitor may see. The client encodes the slug, so decode before comparing.
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+  const rows = await sql`
+    select * from projects
+    where slug = ${slug} and published = true and visible = true
+    limit 1
+  `;
+  return (rows[0] as Project | undefined) ?? null;
+}
+
 export async function getNotes(): Promise<{ notes: Note[] }> {
   const rows = await sql`
     select * from notes
     where published = true
-    order by published_at desc nulls last
+    order by published_at desc nulls last, created_at desc
   `;
   return { notes: rows as Note[] };
 }
