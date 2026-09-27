@@ -7,7 +7,9 @@
     "dev": "astro dev --port 3100",
     "build": "astro build",
     "preview": "astro preview --port 3100",
-    "start": "node ./dist/server/entry.mjs"
+    "start": "node ./dist/server/entry.mjs",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",
@@ -21,7 +23,10 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
+    "fast-check": "4.10.2",
+    "jsdom": "29.1.1",
     "postcss": "^8.4.49",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "5.0.2"
   }
 }
