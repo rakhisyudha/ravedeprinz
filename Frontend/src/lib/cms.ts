@@ -3,7 +3,7 @@
 // their intentional static fallback content from src/data/*, so the two
 // sources stay visibly distinct in calling code (live* vs fallback*).
 
-import { apiGet } from './api';
+import { apiGet, type ApiResult } from './api';
 
 export type SiteSettings = {
   site_name: string;
@@ -11,6 +11,9 @@ export type SiteSettings = {
   footer_label: string;
   hero_tagline: string;
   contact_email?: string | null;
+  cv_url?: string | null;
+  availability_status?: string | null;
+  availability_note?: string | null;
 };
 
 export type HomeContent = {
@@ -72,6 +75,16 @@ export type Project = {
   source_url?: string | null;
   image_url?: string | null;
   featured: boolean;
+  // Case-study sections. The API returns '' for a section the owner has
+  // not written yet, never null and never omitted.
+  problem: string;
+  what_built: string;
+  key_decision: string;
+  outcome: string;
+  updated_at?: string | null;
+  sort_order?: number | null;
+  published?: boolean | null;
+  visible?: boolean | null;
 };
 export type Note = {
   id?: string;
@@ -82,6 +95,7 @@ export type Note = {
   author?: string | null;
   subtitle?: string | null;
   image_url?: string | null;
+  published?: boolean | null;
   published_at?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
@@ -129,6 +143,22 @@ export async function fetchProjects(): Promise<{ projects: Project[] } | null> {
   return res.status === 'ok' ? res.data : null;
 }
 
+/**
+ * Raw result for the case-study page, which has to tell "the CMS answered
+ * and has no such project" apart from "the CMS is unreachable" so it can
+ * pick between a 404 and the fallback lookup. Every other caller wants the
+ * project-or-null shape of getProjectBySlug.
+ */
+export async function getProjectBySlugResult(slug: string): Promise<ApiResult<Project>> {
+  return apiGet<Project>(`/api/content/projects/${encodeURIComponent(slug)}`);
+}
+
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+  const res = await getProjectBySlugResult(slug);
+  if (res.status !== 'ok' || !res.data?.title) return null;
+  return res.data;
+}
+
 export async function fetchNotes(): Promise<{ notes: Note[] } | null> {
   const res = await apiGet<{ notes: Note[] }>('/api/content/notes');
   return res.status === 'ok' ? res.data : null;
@@ -138,6 +168,15 @@ export async function getNoteById(id: string): Promise<Note | null> {
   const res = await apiGet<Note>(`/api/content/notes/${encodeURIComponent(id)}`);
   if (res.status !== 'ok' || !res.data?.title) return null;
   return res.data;
+}
+
+/**
+ * Raw result for the note detail page, so it can tell "the CMS answered and
+ * has no such note" (404) apart from "the CMS is unreachable" (fallback).
+ * Mirrors getProjectBySlugResult.
+ */
+export async function getNoteByIdResult(id: string): Promise<ApiResult<Note>> {
+  return apiGet<Note>(`/api/content/notes/${encodeURIComponent(id)}`);
 }
 
 export async function fetchNow(): Promise<{

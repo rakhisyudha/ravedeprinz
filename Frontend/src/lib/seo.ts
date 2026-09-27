@@ -42,6 +42,18 @@ export function getNoteOgImageUrl(note: Pick<Note, 'id' | 'slug'>, idFallback: s
   return `${getNoteCanonicalUrl(note, idFallback)}/opengraph-image.jpg`;
 }
 
+/**
+ * Meta-description and OG-excerpt bound. The ellipsis is counted inside the
+ * limit, so the returned string is never longer than `max` characters.
+ */
+export function metaExcerpt(text: string | null | undefined, max = 160): string {
+  const value = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (value.length <= max) return value;
+  const cut = value.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
 export function absolutizeUpload(path: string | null | undefined): string | null {
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return path;

@@ -1,0 +1,100 @@
+---
+import type { ContactView } from '../../lib/availability';
+import { contactTagline, socialLinks } from '../../data/site';
+
+interface Props {
+  contact: ContactView;
+}
+
+const { contact } = Astro.props;
+---
+
+{/*
+  Identity on the left, CONNECT links on the right. Reading order is wordmark,
+  tagline, then the email: the name introduces the block and the mailto is the
+  direct method beneath it. The block deliberately ends there: the real site
+  footer follows and already closes the page, so this section carries no
+  copyright line, no rule, and no status repeat of its own.
+*/}
+<section class="home-preview contact-block-wrap" aria-labelledby="home-contact-title">
+  <p class="home-preview-label" id="home-contact-title">CONTACT <span>// REACH ME</span></p>
+
+  <div class="contact-cols">
+    <div class="contact-identity">
+      <a href="/" class="contact-mark" aria-label="ravedeprinz home"><strong>r</strong>avedeprinz_</a>
+      <p class="contact-tagline">{contactTagline}</p>
+      {contact.email && (
+        <p class="contact-direct">
+          <a class="contact-link" href={`mailto:${contact.email}`}>{contact.email}</a>
+        </p>
+      )}
+      {contact.note && <p class="contact-note">{contact.note}</p>}
+    </div>
+
+    <div class="contact-connect">
+      <p class="connect-label">CONNECT</p>
+      {socialLinks.length > 0 && (
+        <ul class="connect-list">
+          {socialLinks.map((link) => (
+            <li>
+              <a class="connect-link" href={link.href} target="_blank" rel="noreferrer">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* Bracket button, same control as [ ALL PROJECTS ] / [ ALL NOTES ]. */}
+      {contact.cvUrl && (
+        <a
+          class="contact-cv bracket-btn row-hover--accent"
+          href={contact.cvUrl}
+          download
+          aria-label="Download CV (PDF)"
+        >
+          CV <span aria-hidden="true">↓</span>
+        </a>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .home-preview { position:relative; z-index:1; max-width:1430px; margin:44px auto 0; padding-bottom:34px; }
+  .home-preview-label { display:flex; gap:14px; align-items:center; margin:0 0 18px; color:var(--text-faint); font:700 var(--type-label) var(--font-ui); letter-spacing:3px; }
+
+  .contact-direct { margin:14px 0 0; }
+  .contact-note { margin:8px 0 0; color:var(--text-muted); font:var(--type-small) var(--font-ui); overflow-wrap:anywhere; }
+  .contact-link { color:var(--text); font:var(--type-body) var(--font-ui); overflow-wrap:anywhere; text-decoration:none; }
+  .contact-link:hover { color:var(--red); }
+  .contact-link:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
+
+  .contact-cols { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:34px; align-items:start; }
+
+  /* Wordmark hover is a true swap, not a colour wash: the "r" starts red and
+     the rest light, and they trade places on hover. Every colour is a
+     theme-aware token — `--paper`/`--ink` are fixed across both themes, so
+     using them here rendered white-on-white in light mode. The header's
+     site-mark keeps its own underline treatment and is untouched. */
+  .contact-mark { display:inline-block; color:var(--text); font:700 25px var(--font-ui); letter-spacing:.02em; text-decoration:none; transition:color .18s ease; }
+  .contact-mark strong { color:var(--red); font-size:34px; line-height:0; transition:color .18s ease; }
+  .contact-mark:hover { color:var(--red); }
+  .contact-mark:hover strong { color:var(--text); }
+  .contact-mark:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
+  .contact-tagline { margin:10px 0 0; color:var(--text-muted); font:var(--type-body) var(--font-ui); }
+
+  .connect-label { margin:0 0 10px; color:var(--text-faint); font:700 var(--type-label) var(--font-ui); letter-spacing:3px; }
+  .connect-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .connect-link { color:var(--text-muted); font:700 var(--type-label) var(--font-ui); letter-spacing:2px; text-decoration:none; transition:color .18s ease; }
+  .connect-link:hover { color:var(--red); }
+  .connect-link:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
+  .contact-connect .connect-link { display:inline-block; margin-top:7px; }
+  /* The CV is a bracket button, not a list link: it carries .bracket-btn from
+     the shared control and only contributes its own spacing here. */
+  .contact-cv { margin-top:14px; }
+
+  @media (max-width: 480px) {
+    .home-preview { margin-top:32px; }
+    .contact-cols { grid-template-columns:minmax(0,1fr); gap:26px; }
+  }
+</style>

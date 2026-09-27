@@ -1,0 +1,42 @@
+---
+import type { NoteEntry } from '../../lib/homePreview';
+import HomeRow from './HomeRow.astro';
+
+interface Props {
+  entries: NoteEntry[];
+}
+
+const { entries } = Astro.props;
+---
+
+{/* Same row template as Featured Work: media, date, title + tag, arrow. */}
+<section class="home-preview" aria-labelledby="home-notes-title">
+  <p class="home-preview-label" id="home-notes-title">LATEST NOTES <span>// TRANSMISSIONS</span></p>
+  <ul class="preview-list">
+    {entries.map((entry) => (
+      <HomeRow
+        href={entry.href}
+        media={entry.image}
+        mediaAlt={`${entry.title} preview`}
+        date={entry.dateLabel}
+        title={entry.title}
+        badge={entry.tag}
+        description={entry.readLabel}
+        ariaLabel={`${entry.title}, ${entry.tag}, ${entry.readLabel}`}
+      />
+    ))}
+  </ul>
+  <a class="preview-all bracket-btn row-hover--accent" href="/notes">[ ALL NOTES ]</a>
+</section>
+
+<style>
+  .home-preview { position:relative; z-index:1; max-width:1430px; margin:44px auto 0; }
+  .home-preview-label { display:flex; gap:14px; align-items:center; margin:0 0 10px; color:var(--text-faint); font:700 var(--type-label) var(--font-ui); letter-spacing:3px; }
+  .preview-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+  /* Spacing only; the button itself is the shared .bracket-btn. */
+  .preview-all { margin-top:14px; }
+
+  @media (max-width: 480px) {
+    .home-preview { margin-top:32px; }
+  }
+</style>

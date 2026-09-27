@@ -2,49 +2,27 @@
 import Base from '../layouts/Base.astro';
 import PageHead from '../components/PageHead.astro';
 import { fetchNotes } from '../lib/cms';
-import { notes as fallbackNotes } from '../data/content';
-import { readingMinutes } from '../lib/readingTime';
-import { slugify } from '../data/site';
+import { fallbackNoteList } from '../lib/fallback';
+import { noteDateLabel, noteSlug, readLabel } from '../lib/notesPreview';
 
 export const prerender = false;
 
 // Live notes when the CMS answers; otherwise the intentional static
-// fallback below, normalized to the same shape.
+// fallback, normalized to the same shape. The strip and this list share
+// noteDateLabel/noteSlug/readLabel, so both render identical labels and
+// hrefs for the same note.
 const liveNotes = await fetchNotes();
-const notes =
-  liveNotes?.notes ??
-  fallbackNotes.map((n) => ({
-    title: n.title,
-    slug: slugify(n.title),
-    body: n.text,
-    tag: n.tag,
-    author: 'Rakhis',
-    subtitle: null as string | null,
-    image_url: null as string | null,
-    created_at: null as string | null,
-    published_at: null as string | null,
-  }));
-
-function dateLabel(createdAt?: string | null, publishedAt?: string | null): string {
-  // Human date is the immutable creation date, so editing a note never
-  // moves it. Fall back to published_at for rows predating created_at.
-  const raw = createdAt ?? publishedAt;
-  if (!raw) return '';
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
-}
+const notes = liveNotes?.notes ?? fallbackNoteList();
 ---
 <Base title="NOTES" currentPath="/notes">
   <PageHead index="TRANSMISSIONS / 005" title="NOTES" intro="Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose.">
     <section class="notes-list">
       {notes.map((note) => {
-        const slug = note.slug?.trim() || slugify(note.title);
-        const minutes = readingMinutes(note.body ?? '', note.image_url);
+        const slug = noteSlug(note);
         return (
           <article class="note lift">
             <a href={`/notes/${slug}`} class="note-link">
-              <span class="note-date">{dateLabel(note.created_at, note.published_at)}<small>READ {String(minutes).padStart(2, '0')} MIN</small></span>
+              <span class="note-date">{noteDateLabel(note.created_at, note.published_at)}<small>{readLabel(note)}</small></span>
               <div class="note-body">
                 <p class="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
                 <h2>{note.title}</h2>

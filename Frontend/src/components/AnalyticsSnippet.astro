@@ -1,0 +1,27 @@
+---
+import {
+  parseAnalyticsConfig,
+  readAnalyticsEnv,
+  shouldRenderSnippet,
+  snippetAttributes,
+} from '../lib/analytics';
+
+// Rendered only when the env config is valid and the current path is not
+// excluded, so /login and /admin never carry a tracker. Astro keeps identical
+// head elements across a ClientRouter swap, which is why a soft navigation
+// can never duplicate this element.
+const config = parseAnalyticsConfig(readAnalyticsEnv());
+const enabled = shouldRenderSnippet(Astro.url.pathname, config);
+const attributes = config ? snippetAttributes(config) : {};
+---
+
+{
+  enabled && (
+    <>
+      <script {...attributes} />
+      <script>
+        import '../lib/analyticsClient';
+      </script>
+    </>
+  )
+}

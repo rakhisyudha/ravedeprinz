@@ -1,0 +1,138 @@
+---
+// The one row template for the home page's home-preview lists. Featured Work,
+// Latest Notes, and the Now line all render through it, so a row looks and
+// behaves identically wherever it appears: media, then a fixed-width date
+// column so every row's text starts at the same x, then the copy, then the
+// arrow. Only the data fed in differs.
+
+interface Props {
+  href: string;
+  /** Artwork, or null for the hatched placeholder. */
+  media?: string | null;
+  /** Hide the media cell entirely (used by the Now line, which has no art). */
+  showMedia?: boolean;
+  mediaAlt?: string;
+  /** Year for a project, date label for a note, "since" stamp for the now line. */
+  date: string;
+  title: string;
+  /** Status or tag. Omitted where a badge would be noise. */
+  badge?: string;
+  description?: string;
+  /** Accessible name; defaults to the title. */
+  ariaLabel?: string;
+  /** Clamp the description to one line. Off where the text must show in full. */
+  clamp?: boolean;
+}
+
+const {
+  href,
+  media = null,
+  showMedia = true,
+  mediaAlt = '',
+  date,
+  title,
+  badge = '',
+  description = '',
+  ariaLabel,
+  clamp = true,
+} = Astro.props;
+---
+
+<li class="home-row-item">
+  <a
+    class:list={['home-row', 'row-hover', { 'home-row--no-media': !showMedia }]}
+    href={href}
+    aria-label={ariaLabel}
+  >
+    {showMedia && (
+      <span class:list={['row-media', { 'is-placeholder': !media }]}>
+        {media && <img src={media} alt={mediaAlt} loading="lazy" data-hide-on-error />}
+      </span>
+    )}
+    <span class="row-date">{date}</span>
+    <span class="row-copy">
+      <span class="row-head">
+        <b class="row-title">{title}</b>
+        {badge && <span class="row-badge">{badge}</span>}
+      </span>
+      {description && (
+        <span class:list={['row-desc', { 'line-clamp-1': clamp }]}>{description}</span>
+      )}
+    </span>
+    <span class="row-arrow" aria-hidden="true">↗</span>
+  </a>
+</li>
+
+{/*
+  A media cell whose image fails to load degrades to the same hatched
+  placeholder an entry with no artwork gets, rather than removing the cell —
+  removing it would collapse the grid and break the row's alignment. Capture
+  phase, so it runs on first load and after every ClientRouter swap.
+*/}
+<script>
+  document.addEventListener(
+    'error',
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLImageElement) || !target.hasAttribute('data-hide-on-error')) return;
+      const cell = target.closest('.row-media');
+      if (!cell) return;
+      cell.classList.add('is-placeholder');
+      target.remove();
+    },
+    true,
+  );
+</script>
+
+<style>
+  .home-row-item { list-style:none; }
+  /* Column order: [ thumbnail ] [ date ] [ title + tags/status ] [ arrow ].
+     The date track is `auto` so it can never be narrower than the text inside
+     it — an undersized fixed track is what let a long date spill over the
+     title. `.row-date`'s min-width is what aligns the short dates ("11 SEP")
+     to the same x as the long ones ("27 AUG 2026") across every row. */
+  .home-row { position:relative; display:grid; grid-template-columns:112px auto minmax(0,1fr) 34px; gap:16px; align-items:center; padding:14px 0; border-top:1px solid var(--line-16); text-decoration:none; color:inherit; }
+  /* No media cell: three tracks for three children, so the date does not
+     inherit the thumbnail's width. */
+  .home-row--no-media { grid-template-columns:auto minmax(0,1fr) 34px; }
+
+  /* Media cell is always present in a list row, so the date column below it
+     starts at the same x on every row. */
+  .row-media { position:relative; display:block; width:112px; height:72px; overflow:hidden; border:1px solid var(--line-18); background:var(--surface); }
+  .row-media img { display:block; width:100%; height:100%; object-fit:cover; }
+  /* No artwork, or artwork that failed: a hatched plate with the site's red
+     slash, so the cell reads as a deliberate placeholder, not a gap. */
+  .row-media.is-placeholder {
+    background-image:repeating-linear-gradient(-30deg,var(--line-16) 0 2px,transparent 2px 9px);
+    background-color:var(--surface-deep);
+    border-color:var(--line-25);
+  }
+  .row-media.is-placeholder::after {
+    content:'//'; position:absolute; inset:0; display:grid; place-items:center;
+    color:var(--red); font:700 20px var(--font-ui); letter-spacing:2px;
+  }
+
+  /* Wide enough for the longest date the site renders ("27 AUG 2026") at the
+     30px numeral size, so it never wraps and never needs truncating. */
+  .row-date { min-width:176px; color:var(--text-faint); font:var(--type-numeral) var(--font-display); white-space:nowrap; }
+
+  .row-copy { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .row-head { display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; min-width:0; }
+  .row-title { font:700 var(--type-body) var(--font-ui); letter-spacing:.5px; overflow-wrap:anywhere; }
+  .row-badge { color:var(--red); font:700 var(--type-label) var(--font-ui); letter-spacing:2px; }
+  .row-desc { color:var(--text-muted); font:var(--type-small) var(--font-ui); overflow-wrap:anywhere; }
+  .row-arrow { color:var(--text-faint); font:var(--type-body) var(--font-ui); }
+  .line-clamp-1 { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+  @media (max-width: 480px) {
+    /* Stack: media, then date, then copy, arrow last. Full-width tracks mean
+       the date no longer competes with the title for horizontal space. */
+    .home-row,
+    .home-row--no-media { grid-template-columns:minmax(0,1fr) 24px; gap:12px; }
+    .row-media { grid-column:1 / -1; width:100%; height:auto; aspect-ratio:16/9; }
+    .row-date { grid-column:1 / -1; min-width:0; }
+    .row-copy { grid-column:1 / -1; min-width:0; }
+    .row-arrow { grid-column:2; }
+    .line-clamp-1 { white-space:normal; overflow-wrap:anywhere; }
+  }
+</style>

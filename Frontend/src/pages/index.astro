@@ -1,18 +1,41 @@
 ---
 import Base from '../layouts/Base.astro';
 import HudPanel from '../components/HudPanel.svelte';
+import FeaturedProjects from '../components/home/FeaturedProjects.astro';
+import LatestNotes from '../components/home/LatestNotes.astro';
+import NowStatusLine from '../components/home/NowStatusLine.astro';
+import ContactBlock from '../components/home/ContactBlock.astro';
 import { fetchHome } from '../lib/cms';
+import { loadHomePreview } from '../lib/homePreview';
+import { cached } from '../lib/requestCache';
 import { homeContent as fallbackContent, navigation as fallbackNav } from '../data/site';
 
 // Home is CMS-backed. Render it per request so admin edits are visible on
 // the next reload without rebuilding the Astro server.
 export const prerender = false;
 
+// The preview blocks. All five CMS requests start through the request cache
+// at once, so the page's total CMS wait is one timeout window; Base.astro's
+// own two fetches join those in-flight promises instead of queueing behind
+// them. Each block then decides independently between live and fallback
+// data, and a block whose builder fails is dropped rather than failing the
+// page.
+const preview = await loadHomePreview(Astro.locals);
+
 // Live home content when the CMS answers; otherwise the intentional
-// static fallback below. `liveHome === null` means CMS-unreachable.
-const liveHome = await fetchHome();
+// static fallback below. `liveHome === null` means CMS-unreachable. The
+// same cached promise Base.astro reads, so the home payload is fetched once.
+const liveHome = await cached(Astro.locals, 'home', fetchHome);
 const content = liveHome?.content ?? fallbackContent;
 const navigation = liveHome?.navigation ?? fallbackNav;
+
+// PROJECTS, NOTES, and NOW each have a dedicated preview section lower on
+// this page (Featured Work, Latest Notes, Now), and those link to the same
+// destinations, so the Archive Index only carries the two pages that do not.
+// Every field still comes from the CMS — this filters rows, it does not
+// hardcode any label, description, number, or href.
+const ARCHIVE_INDEX_KEYS = new Set(['about', 'work']);
+const archiveIndex = navigation.filter((item) => ARCHIVE_INDEX_KEYS.has(item.page_key));
 ---
 <Base title="Rakhis de Yudha // Personal archive" currentPath="/">
   <main class="home-page">
@@ -44,14 +67,18 @@ const navigation = liveHome?.navigation ?? fallbackNav;
     <nav class="home-rule" aria-label="Explore the archive">
       <p class="home-rule-label">ARCHIVE INDEX <span>// SELECT A RECORD</span></p>
       <div class="home-records">
-        {navigation.map((item, index) => (
-          <a href={item.href} class={`home-record home-record-${index}`}>
+        {archiveIndex.map((item, index) => (
+          <a href={item.href} class={`home-record row-hover home-record-${index}`}>
             <span class="home-record-number">{item.display_number}</span>
             <span class="home-record-copy"><b>{item.label}</b><small>{item.description}</small></span>
-            <span class="home-record-arrow">↗</span>
+            <span class="home-record-arrow row-arrow" aria-hidden="true">↗</span>
           </a>
         ))}
       </div>
     </nav>
+    {preview.featured && <FeaturedProjects entries={preview.featured} />}
+    {preview.notes && <LatestNotes entries={preview.notes} />}
+    <NowStatusLine status={preview.now} />
+    <ContactBlock contact={preview.contact} />
   </main>
 </Base>

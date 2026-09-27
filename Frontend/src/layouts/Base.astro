@@ -2,7 +2,9 @@
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 import Menu from '../components/Menu.svelte';
+import AnalyticsSnippet from '../components/AnalyticsSnippet.astro';
 import { fetchHome, fetchSite } from '../lib/cms';
+import { cached } from '../lib/requestCache';
 import { navigation as fallbackNav, siteSettings as fallbackSite } from '../data/site';
 
 interface Props {
@@ -24,14 +26,22 @@ const {
 // Live footer identity when the CMS answers; otherwise the intentional
 // static fallback. `liveSite === null` also covers CMS-unreachable,
 // so the layout never invents CMS data.
-const liveSite = await fetchSite();
+//
+// Both layout fetches go through the request cache, so a page that already
+// asked for them (index.astro starts all five preview requests before the
+// layout runs) resolves immediately from those in-flight promises instead of
+// adding another timeout window.
+const [liveSite, liveHome] = await Promise.all([
+  cached(Astro.locals, 'site', fetchSite),
+  cached(Astro.locals, 'home', fetchHome),
+]);
+
 const footerName = liveSite?.footer_name ?? fallbackSite.footer_name;
 const footerLabel = liveSite?.footer_label ?? fallbackSite.footer_label;
 
 // Live menu navigation, fetched per request like every other page does, so
 // CMS Home → Nav edits appear on the next reload without a rebuild. Falls
 // back to the intentional static navigation when the CMS is unreachable.
-const liveHome = await fetchHome();
 const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigation : fallbackNav).map(
   ({ href, label, display_number }) => ({ href, label, display_number }),
 );
@@ -97,6 +107,7 @@ const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigatio
       rel="stylesheet"
     />
     <slot name="head" />
+    <AnalyticsSnippet />
     <ClientRouter />
   </head>
   <body>

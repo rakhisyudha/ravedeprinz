@@ -3,31 +3,66 @@ import { Resvg } from '@resvg/resvg-js';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import { getNoteById } from './cms';
+import { getNoteById, type Note } from './cms';
 import { absolutizeUpload, cleanDescription } from './seo';
 
-// Shared per-note 1200x630 social card renderer (server-only: satori +
-// resvg + sharp never reach the browser). Both public endpoints — the
-// legacy extensionless route and the `.jpg` route referenced by og:image —
-// render through here, so there is exactly one card implementation. The
-// right panel renders the cover artwork untouched. The left panel is laid
-// out like a crop of the site's note detail page: small // tag eyebrow,
-// the title as a single dominant anchor, an excerpt that breathes
-// underneath, and a thin site-name line at the bottom. No decorative
-// borders, no fake metadata, no clipped accent shapes.
+// Shared 1200x630 social card renderer (server-only: satori + resvg + sharp
+// never reach the browser). One satori tree and one set of geometry, colour,
+// and font constants, so a second card kind can be added by supplying a
+// different model rather than a second renderer.
+//
+// The right panel renders the cover artwork untouched. The left panel is laid
+// out like a crop of the site's detail page: small // tag eyebrow, the title
+// as a single dominant anchor, an excerpt that breathes underneath, and a
+// thin site-name line at the bottom. No decorative borders, no fake
+// metadata, no clipped accent shapes.
 //
 // Type scale is tuned for SMALL PREVIEW READABILITY (WhatsApp/Discord/
-// messaging link previews render this at thumbnail size): the title
-// stays the dominant anchor but yields a little room so the excerpt
-// and footer survive reduction. Hierarchy: title > excerpt > footer > tag.
+// messaging link previews render this at thumbnail size): the title stays
+// the dominant anchor but yields a little room so the excerpt and footer
+// survive reduction. Hierarchy: title > excerpt > footer > tag.
 
-const WIDTH = 1200;
-const HEIGHT = 630;
+// Every geometry, colour, and font constant lives here and is referenced by
+// both renderers, so a project card can never drift from a note card.
+export const CARD = {
+  WIDTH: 1200,
+  HEIGHT: 630,
+  RED: '#d92323',
+  BLACK: '#0d0d0d',
+  WHITE: '#ffffff',
+  MUTED: '#a8a8a8',
+  FONTS: ['FOT-Rodin-Pro-M.otf', 'FOT-Rodin-Pro-B.otf'] as const,
+  TYPE: {
+    eyebrow: 20,
+    title: 84,
+    excerpt: 34,
+    footer: 20,
+    tracking: 4,
+    titleTracking: 1,
+    titleLineHeight: 0.96,
+    excerptLineHeight: 1.5,
+    eyebrowLetterSpacing: 4,
+  },
+  SPACING: {
+    padding: '64px 72px 56px 72px',
+    eyebrowGap: 8,
+    titleMarginTop: 48,
+    titleMaxWidth: 620,
+    excerptMarginTop: 32,
+    excerptMaxWidth: 600,
+    imagePanelWidth: 430,
+  },
+} as const;
 
-const RED = '#d92323';
-const BLACK = '#0d0d0d';
-const WHITE = '#ffffff';
-const MUTED = '#a8a8a8';
+export const CARD_FOOTER = 'RAVEDEPRINZ.ME  /  NOTES';
+
+export type CardModel = {
+  eyebrow: string;
+  title: string;
+  excerpt: string;
+  footer: string;
+  imageUrl: string | null;
+};
 
 // Same dot texture the body uses — sits behind everything.
 function dotTexture() {
@@ -79,19 +114,11 @@ async function embedCover(path: string | null | undefined): Promise<string | nul
   }
 }
 
-export async function renderNoteCardPng(slug: string): Promise<Buffer> {
-  const note = await getNoteById(slug).catch(() => null);
-
-  const tag = (note?.tag ?? 'NOTES').toUpperCase();
-  const title = (note?.title ?? 'ravedeprinz').slice(0, 80);
-  const excerpt =
-    cleanDescription(note?.body, note?.subtitle, 160) ||
-    'Short transmissions from the workbench.';
-  const cover = await embedCover(note?.image_url);
-
+/** The one satori tree, parameterised by the model. */
+async function renderCardPng(model: CardModel): Promise<Buffer> {
   const [regular, bold] = await Promise.all([
-    loadFontFile('FOT-Rodin-Pro-M.otf'),
-    loadFontFile('FOT-Rodin-Pro-B.otf'),
+    loadFontFile(CARD.FONTS[0]),
+    loadFontFile(CARD.FONTS[1]),
   ]);
 
   const svg = await satori(
@@ -103,15 +130,15 @@ export async function renderNoteCardPng(slug: string): Promise<Buffer> {
           flexDirection: 'row',
           width: '100%',
           height: '100%',
-          backgroundColor: BLACK,
+          backgroundColor: CARD.BLACK,
           position: 'relative',
           overflow: 'hidden',
           fontFamily: 'Rodin Pro',
         },
         children: [
           dotTexture(),
-          // Thin red edge along the boundary between the left panel
-          // and the right artwork — the only red shape on the card.
+          // Thin red edge along the boundary between the left panel and the
+          // right artwork — the only red shape on the card.
           {
             type: 'div',
             props: {
@@ -119,14 +146,13 @@ export async function renderNoteCardPng(slug: string): Promise<Buffer> {
                 position: 'absolute',
                 top: 0,
                 bottom: 0,
-                right: 430,
+                right: CARD.SPACING.imagePanelWidth,
                 width: 1,
                 backgroundColor: 'rgba(217,35,35,0.55)',
               },
             },
           },
-          // Left panel — laid out like a fragment of the note detail
-          // page: eyebrow, dominant title, excerpt, site-name footer.
+          // Left panel — eyebrow, dominant title, excerpt, site-name footer.
           {
             type: 'div',
             props: {
@@ -134,13 +160,10 @@ export async function renderNoteCardPng(slug: string): Promise<Buffer> {
                 display: 'flex',
                 flexDirection: 'column',
                 flex: 1,
-                padding: '64px 72px 56px 72px',
+                padding: CARD.SPACING.padding,
                 position: 'relative',
               },
               children: [
-                // // TAG — same primitive as .eyebrow on the site.
-                // Small but legible at thumbnail scale; never larger
-                // than the excerpt above the title.
                 {
                   type: 'div',
                   props: {
@@ -154,10 +177,10 @@ export async function renderNoteCardPng(slug: string): Promise<Buffer> {
                         type: 'div',
                         props: {
                           style: {
-                            color: RED,
-                            fontSize: 20,
+                            color: CARD.RED,
+                            fontSize: CARD.TYPE.eyebrow,
                             fontWeight: 700,
-                            marginRight: 8,
+                            marginRight: CARD.SPACING.eyebrowGap,
                           },
                           children: '//',
                         },
@@ -166,116 +189,109 @@ export async function renderNoteCardPng(slug: string): Promise<Buffer> {
                         type: 'div',
                         props: {
                           style: {
-                            color: WHITE,
-                            fontSize: 20,
+                            color: CARD.WHITE,
+                            fontSize: CARD.TYPE.eyebrow,
                             fontWeight: 700,
-                            letterSpacing: 4,
+                            letterSpacing: CARD.TYPE.eyebrowLetterSpacing,
                           },
-                          children: tag,
+                          children: model.eyebrow,
                         },
                       },
                     ],
                   },
                 },
-                // Title — the anchor. Left-aligned, large, single block.
-                // The display font on the site goes up to ~150px on the
-                // detail page; here we set it where the longest word
-                // still fits the panel with comfortable margins. 84px
-                // keeps it clearly dominant while freeing vertical room
-                // for a readable excerpt.
                 {
                   type: 'div',
                   props: {
                     style: {
-                      marginTop: 48,
-                      maxWidth: 620,
-                      color: WHITE,
-                      fontSize: 84,
+                      marginTop: CARD.SPACING.titleMarginTop,
+                      maxWidth: CARD.SPACING.titleMaxWidth,
+                      color: CARD.WHITE,
+                      fontSize: CARD.TYPE.title,
                       fontWeight: 700,
-                      lineHeight: 0.96,
-                      letterSpacing: 1,
+                      lineHeight: CARD.TYPE.titleLineHeight,
+                      letterSpacing: CARD.TYPE.titleTracking,
                       textTransform: 'uppercase',
                       display: 'flex',
                     },
-                    children: title,
+                    children: model.title,
                   },
                 },
-                // Excerpt — the same muted reading copy the site uses
-                // for lede paragraphs. Sized up so it survives thumbnail
-                // rendering as a clear secondary hierarchy under the
-                // title, hard-clamped to two lines with a clean ellipsis
-                // so a long paragraph can never consume the composition.
                 {
                   type: 'div',
                   props: {
                     style: {
-                      marginTop: 32,
-                      maxWidth: 600,
-                      color: MUTED,
-                      fontSize: 34,
+                      marginTop: CARD.SPACING.excerptMarginTop,
+                      maxWidth: CARD.SPACING.excerptMaxWidth,
+                      color: CARD.MUTED,
+                      fontSize: CARD.TYPE.excerpt,
                       fontWeight: 400,
-                      lineHeight: 1.5,
+                      lineHeight: CARD.TYPE.excerptLineHeight,
                       lineClamp: 2,
                       display: 'flex',
                     },
-                    children: excerpt,
+                    children: model.excerpt,
                   },
                 },
-                // Site-name footer — the only element that anchors the
-                // bottom of the panel. Small-medium and clearly readable
-                // at thumbnail scale (lifted from GRAY to MUTED for
-                // contrast) while staying far below the excerpt in
-                // visual weight.
                 {
                   type: 'div',
                   props: {
                     style: {
                       marginTop: 'auto',
-                      color: MUTED,
-                      fontSize: 20,
+                      color: CARD.MUTED,
+                      fontSize: CARD.TYPE.footer,
                       fontWeight: 700,
-                      letterSpacing: 4,
+                      letterSpacing: CARD.TYPE.tracking,
                       display: 'flex',
                     },
-                    children: 'RAVEDEPRINZ.ME  /  NOTES',
+                    children: model.footer,
                   },
                 },
               ],
             },
           },
           // Right panel — cover artwork, untouched.
-          ...(cover
-            ? [
-                {
-                  type: 'div',
-                  props: {
-                    style: { display: 'flex', width: 430, position: 'relative' },
-                    children: [
+          ...(model.imageUrl
+            ? await (async () => {
+                const cover = await embedCover(model.imageUrl);
+                return cover
+                  ? [
                       {
-                        type: 'img',
+                        type: 'div',
                         props: {
-                          src: cover,
                           style: {
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                            display: 'flex',
+                            width: CARD.SPACING.imagePanelWidth,
+                            position: 'relative',
                           },
+                          children: [
+                            {
+                              type: 'img',
+                              props: {
+                                src: cover,
+                                style: {
+                                  position: 'absolute',
+                                  left: 0,
+                                  top: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                },
+                              },
+                            },
+                          ],
                         },
                       },
-                    ],
-                  },
-                },
-              ]
+                    ]
+                  : [];
+              })()
             : []),
         ].filter(Boolean),
       },
     } as never,
     {
-      width: WIDTH,
-      height: HEIGHT,
+      width: CARD.WIDTH,
+      height: CARD.HEIGHT,
       fonts: [
         { name: 'Rodin Pro', data: regular, weight: 400, style: 'normal' },
         { name: 'Rodin Pro', data: bold, weight: 700, style: 'normal' },
@@ -283,13 +299,31 @@ export async function renderNoteCardPng(slug: string): Promise<Buffer> {
     },
   );
 
-  const png = new Resvg(svg, { fitTo: { mode: 'width', value: WIDTH } }).render().asPng();
+  const png = new Resvg(svg, { fitTo: { mode: 'width', value: CARD.WIDTH } }).render().asPng();
   return Buffer.from(png);
 }
 
-// WhatsApp-sized variant: messaging crawlers cap preview images well
-// below what PNG photographs cost (~550KB here vs their ~300KB budget),
-// so the referenced card is JPEG. Same pixels, same composition.
+// --- Note card -------------------------------------------------------------
+
+/** The pre-refactor note card model, unchanged. */
+export function buildNoteCardModel(note: Note | null): CardModel {
+  return {
+    eyebrow: (note?.tag ?? 'NOTES').toUpperCase(),
+    title: (note?.title ?? 'ravedeprinz').slice(0, 80),
+    excerpt: cleanDescription(note?.body, note?.subtitle, 160) || 'Short transmissions from the workbench.',
+    footer: CARD_FOOTER,
+    imageUrl: note?.image_url ?? null,
+  };
+}
+
+export async function renderNoteCardPng(slug: string): Promise<Buffer> {
+  const note = await getNoteById(slug).catch(() => null);
+  return renderCardPng(buildNoteCardModel(note));
+}
+
+// WhatsApp-sized variant: messaging crawlers cap preview images well below
+// what PNG photographs cost, so the referenced card is JPEG. Same pixels,
+// same composition.
 export async function renderNoteCardJpeg(slug: string, quality = 82): Promise<Buffer> {
   const png = await renderNoteCardPng(slug);
   return sharp(png).jpeg({ quality }).toBuffer();

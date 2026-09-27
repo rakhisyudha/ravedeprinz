@@ -6,6 +6,13 @@ export const siteSettings = {
   footer_name: 'ravedepr1nz',
   footer_label: 'PERSONAL ARCHIVE',
   hero_tagline: "I DON'T GUESS. I DEBUG.",
+  // Contact block fallbacks. The owner replaces these from /admin/settings;
+  // they keep the home page and the case-study pages complete when the CMS
+  // is unreachable. cv_url is empty until a CV is uploaded.
+  contact_email: 'hello@ravedeprinz.me',
+  availability_status: 'OPEN_TO_WORK' as const,
+  availability_note: '',
+  cv_url: '',
 };
 
 export const homeContent = {
@@ -72,6 +79,23 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
+// Profile links shown in the contact block. Static site config rather than
+// CMS content: they change rarely and need no admin surface.
+//
+// LinkedIn and Instagram are commented out until the handles exist — the
+// contact block renders exactly the entries listed here, so a missing handle
+// means no link rather than a link to nowhere. Uncomment and fill in to add
+// them to the CONNECT list.
+export const socialLinks: Array<{ label: string; href: string }> = [
+  { label: 'GITHUB', href: 'https://github.com/rakhisyudha' },
+  // { label: 'LINKEDIN', href: 'https://www.linkedin.com/in/<handle>' },
+  // { label: 'INSTAGRAM', href: 'https://instagram.com/<handle>' },
+];
+
+// The contact block's tagline, in the site's voice. Echoes "I don't guess.
+// I debug." without repeating it.
+export const contactTagline = 'Backend systems, built in the open.';
 
 export const projectImages: Record<string, string> = {
   'simple-portfolio': '/img/Projects/portfolio.png',

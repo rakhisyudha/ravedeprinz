@@ -1,0 +1,41 @@
+---
+import type { NowStatusView } from '../../lib/nowStatus';
+import HomeRow from './HomeRow.astro';
+
+interface Props {
+  status: NowStatusView;
+}
+
+const { status } = Astro.props;
+---
+
+{/*
+  The same row template as the two lists above, with no media cell and no
+  status badge: just what is being built and the date it was last stamped.
+  The arrow stays because the row still links to /now. The `description` of
+  the now entry is deliberately never read — this line stays one line.
+*/}
+<section class="home-preview" aria-labelledby="home-now-title">
+  <p class="home-preview-label" id="home-now-title">NOW <span>// CURRENTLY</span></p>
+  <ul class="preview-list">
+    <HomeRow
+      href="/now"
+      showMedia={false}
+      date={status.updatedLabel}
+      title={status.title}
+      description={status.label}
+      clamp={false}
+      ariaLabel={`Now: ${status.title} — since ${status.updatedLabel}`}
+    />
+  </ul>
+</section>
+
+<style>
+  .home-preview { position:relative; z-index:1; max-width:1430px; margin:44px auto 0; }
+  .home-preview-label { display:flex; gap:14px; align-items:center; margin:0 0 10px; color:var(--text-faint); font:700 var(--type-label) var(--font-ui); letter-spacing:3px; }
+  .preview-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+
+  @media (max-width: 480px) {
+    .home-preview { margin-top:32px; }
+  }
+</style>

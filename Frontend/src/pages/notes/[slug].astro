@@ -3,7 +3,8 @@ import Base from '../../layouts/Base.astro';
 import NoteBody from '../../components/NoteBody.astro';
 import ReadingProgress from '../../components/ReadingProgress.svelte';
 import ShareBar from '../../components/ShareBar.svelte';
-import { getNoteById } from '../../lib/cms';
+import { getNoteByIdResult } from '../../lib/cms';
+import { findFallbackNote } from '../../lib/fallback';
 import { readingMinutes } from '../../lib/readingTime';
 import {
   absolutizeUpload,
@@ -17,7 +18,18 @@ import type { NoteShareData } from '../../lib/sharing/noteStoryRenderer';
 export const prerender = false;
 
 const { slug } = Astro.params;
-const note = slug ? await getNoteById(slug) : null;
+
+// The raw result distinguishes a 404 from an unreachable CMS, so a slug the
+// home strip links to still resolves while the CMS is down. A note the CMS
+// answered for is always preferred; the fallback lookup only runs when the
+// CMS never answered.
+const noteResult = slug ? await getNoteByIdResult(slug) : ({ status: 'not-found' } as const);
+const note =
+  noteResult.status === 'ok' && noteResult.data?.title
+    ? noteResult.data
+    : noteResult.status === 'unavailable' && slug
+      ? findFallbackNote(slug)
+      : null;
 
 if (!note) {
   Astro.response.status = 404;

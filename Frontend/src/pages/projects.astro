@@ -2,29 +2,15 @@
 import Base from '../layouts/Base.astro';
 import PageHead from '../components/PageHead.astro';
 import { fetchProjects } from '../lib/cms';
-import { projects as fallbackProjects } from '../data/content';
-import { projectImages, slugify } from '../data/site';
+import { fallbackProjectList } from '../lib/fallback';
+import { projectHref, projectImage } from '../lib/projects';
 
 export const prerender = false;
 
 // Live projects when the CMS answers; otherwise the intentional static
-// fallback below, normalized to the same shape.
+// fallback, normalized to the same shape so one code path renders both.
 const liveProjects = await fetchProjects();
-const projects =
-  liveProjects?.projects ??
-  fallbackProjects.map((p) => ({
-    title: p.title,
-    slug: slugify(p.title),
-    description: p.desc,
-    year: Number(p.year) || 0,
-    status: p.type,
-    deployment_status: (p.title === 'Web Auction' ? 'NOT_DEPLOYED' : 'DEPLOYED') as 'DEPLOYED' | 'NOT_DEPLOYED',
-    stack: p.stack,
-    live_url: p.link ?? null,
-    source_url: p.github ?? null,
-    image_url: null as string | null,
-    featured: false,
-  }));
+const projects = liveProjects?.projects ?? fallbackProjectList();
 
 const statusVariants = { FINISHED: 'finished', 'IN PROGRESS': 'in-progress', SHELVED: 'shelved' } as const;
 const deploymentVariants = { DEPLOYED: 'deployed', NOT_DEPLOYED: 'not-deployed' } as const;
@@ -33,8 +19,10 @@ const deploymentVariants = { DEPLOYED: 'deployed', NOT_DEPLOYED: 'not-deployed' 
   <PageHead index="BUILD LOG / 004" title="PROJECTS" intro="Things made while learning how to make better software. Finished, experimental, paused, and still worth remembering.">
     <section class="record-list">
       {projects.map((project, index) => {
-        const slug = project.slug?.trim() || slugify(project.title);
-        const image = project.image_url || projectImages[slug];
+        // One slug rule for the whole site, so a title here and the same
+        // title on the home strip and in the sitemap all point at one page.
+        const href = projectHref(project);
+        const image = projectImage(project);
         const statusVariant = statusVariants[project.status] ?? 'shelved';
         const deploymentVariant = deploymentVariants[project.deployment_status] ?? 'not-deployed';
         const deploymentLabel = project.deployment_status === 'DEPLOYED' ? 'DEPLOYED' : 'NOT DEPLOYED';
@@ -53,7 +41,7 @@ const deploymentVariants = { DEPLOYED: 'deployed', NOT_DEPLOYED: 'not-deployed' 
                 </div>
                 <span class={`project-index index-slot index-style-${index % 4}`}>0{index + 1} / {project.year}</span>
               </div>
-              <h2>{project.title}</h2>
+              <h2><a href={href}>{project.title}</a></h2>
               <p>{project.description}</p>
               <p class="metadata">{project.stack}</p>
               <div class="project-links">
@@ -68,3 +56,10 @@ const deploymentVariants = { DEPLOYED: 'deployed', NOT_DEPLOYED: 'not-deployed' 
     </section>
   </PageHead>
 </Base>
+
+<style>
+  /* The title is the case-study link, so it must read as a link. */
+  .project-content h2 a { color:inherit; text-decoration:none; }
+  .project-content h2 a:hover { color:var(--red); }
+  .project-content h2 a:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
+</style>

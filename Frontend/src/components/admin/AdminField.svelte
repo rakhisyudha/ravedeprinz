@@ -12,9 +12,23 @@
     editor?: boolean;
     type?: string;
     placeholder?: string;
+    // Field-level validation message. Rendering it here keeps the message
+    // next to the input that caused it and leaves the typed value in place.
+    error?: string;
+    maxlength?: number;
   }
 
-  const { label, value, onChange, textarea = false, editor = false, type = 'text', placeholder }: Props = $props();
+  const {
+    label,
+    value,
+    onChange,
+    textarea = false,
+    editor = false,
+    type = 'text',
+    placeholder,
+    error = '',
+    maxlength,
+  }: Props = $props();
 
   let area: HTMLTextAreaElement | undefined = $state();
 
@@ -42,9 +56,11 @@
       rows={editor ? 12 : 4}
       class="admin-input"
       class:admin-editor-area={editor}
+      aria-invalid={error ? 'true' : undefined}
       bind:this={area}
       {value}
       {placeholder}
+      {maxlength}
       oninput={(e) => {
         if (editor) syncHeight();
         onChange(e.currentTarget.value);
@@ -57,6 +73,15 @@
       </span>
     {/if}
   {:else}
-    <input {type} class="admin-input" {value} {placeholder} oninput={(e) => onChange(e.currentTarget.value)} />
+    <input
+      {type}
+      class="admin-input"
+      aria-invalid={error ? 'true' : undefined}
+      {value}
+      {placeholder}
+      {maxlength}
+      oninput={(e) => onChange(e.currentTarget.value)}
+    />
   {/if}
+  {#if error}<span class="auth-error" role="alert">{error}</span>{/if}
 </label>

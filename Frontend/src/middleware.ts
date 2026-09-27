@@ -6,6 +6,10 @@ import { serverApiBase } from './lib/api';
 // from context.locals instead of refetching. The Bun API re-verifies
 // every /api/admin/* call regardless.
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Every request gets its own CMS promise cache, set before the /admin gate
+  // so gated and public requests behave identically. See lib/requestCache.ts.
+  context.locals.cmsCache = new Map();
+
   if (!context.url.pathname.startsWith('/admin')) {
     return next();
   }

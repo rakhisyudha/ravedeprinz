@@ -1,0 +1,46 @@
+---
+import type { FeaturedEntry } from '../../lib/projects';
+import HomeRow from './HomeRow.astro';
+
+interface Props {
+  entries: FeaturedEntry[];
+}
+
+const { entries } = Astro.props;
+
+// Every row points at the projects index. There is no /projects/{slug} page,
+// so a per-project link would be a dead route. `entry.href` still carries the
+// canonical per-project URL for anything that wants it later.
+const rowHref = '/projects';
+---
+
+<section class="home-preview" aria-labelledby="home-featured-title">
+  <p class="home-preview-label" id="home-featured-title">FEATURED WORK <span>// SELECTED</span></p>
+  <ul class="preview-list">
+    {entries.map((entry) => (
+      <HomeRow
+        href={rowHref}
+        media={entry.image}
+        mediaAlt={`${entry.title} preview`}
+        date={String(entry.year)}
+        title={entry.title}
+        badge={entry.status}
+        description={entry.description}
+        ariaLabel={`${entry.title}, ${entry.year}, ${entry.status} — see all projects`}
+      />
+    ))}
+  </ul>
+  <a class="preview-all bracket-btn row-hover--accent" href="/projects">[ ALL PROJECTS ]</a>
+</section>
+
+<style>
+  .home-preview { position:relative; z-index:1; max-width:1430px; margin:44px auto 0; }
+  .home-preview-label { display:flex; gap:14px; align-items:center; margin:0 0 10px; color:var(--text-faint); font:700 var(--type-label) var(--font-ui); letter-spacing:3px; }
+  .preview-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+  /* Spacing only; the button itself is the shared .bracket-btn. */
+  .preview-all { margin-top:14px; }
+
+  @media (max-width: 480px) {
+    .home-preview { margin-top:32px; }
+  }
+</style>

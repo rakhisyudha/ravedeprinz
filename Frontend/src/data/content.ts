@@ -8,6 +8,10 @@ export type Project = {
   image?: string;
   link?: string;
   github?: string;
+  // `slug` defaults to slugify(title); set it only to pin a URL that must
+  // not follow the title. `featured` drives the home page strip.
+  slug?: string;
+  featured?: boolean;
 };
 
 export const projects: Project[] = [
@@ -21,6 +25,7 @@ export const projects: Project[] = [
     image: 'portfolio',
     link: 'https://rakhisdeyudha.netlify.app/',
     github: 'https://github.com/rakhisyudha/Rakhis_Portfolio',
+    featured: true,
   },
   {
     title: 'Pakis Hills',
@@ -86,6 +91,7 @@ export const projects: Project[] = [
     image: 'wedding',
     link: 'https://weddinganidarahmat.vercel.app/',
     github: 'https://github.com/rakhisyudha/WeddingApp',
+    featured: true,
   },
   {
     title: 'Online Marketplace',
@@ -97,6 +103,7 @@ export const projects: Project[] = [
     image: 'market',
     link: 'https://online-web-shop-one.vercel.app/',
     github: 'https://github.com/rakhisyudha/online_marketplace_kel2',
+    featured: true,
   },
 ];
 
