@@ -97,6 +97,16 @@ export const socialLinks: Array<{ label: string; href: string }> = [
 // I debug." without repeating it.
 export const contactTagline = 'Backend systems, built in the open.';
 
+/**
+ * The filename a visitor's browser saves the CV as.
+ *
+ * Uploads are stored under hashed names, which would otherwise become the
+ * download name. The `/cv` route sets this in Content-Disposition, and the
+ * hero button repeats it on its `download` attribute as a fallback. Single
+ * source of truth: change it here and both follow.
+ */
+export const cvDownloadFilename = 'Rakhis-de-Yudha-CV.pdf';
+
 export const projectImages: Record<string, string> = {
   'simple-portfolio': '/img/Projects/portfolio.png',
   'pakis-hills': '/img/Projects/pakis.png',

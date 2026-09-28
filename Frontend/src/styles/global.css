@@ -421,6 +421,9 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 .home-cta { display:inline-flex; align-items:center; gap:24px; background:var(--red); padding:16px 22px; font-size:var(--type-metadata); font-weight:700; letter-spacing:.14em; text-transform:uppercase; transition:transform .2s ease,background .2s ease; }
 .home-cta:hover { background:var(--dark-red); transform:translate(-5px,-5px); }
 .home-cta b { font-size:21px; }
+/* Primary CTA plus the secondary CV download. They share a line on desktop and
+   wrap onto their own lines on narrow viewports, so neither is ever clipped. */
+.home-cta-row { display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
 .profile-column { position:relative; min-height:600px; }.profile-slash { position:relative; min-height:520px; transform:rotate(7deg); }.hud-only { position:relative; z-index:3; width:min(100%,400px); margin:80px auto 0; }
 .profile-slash::before { content:''; position:absolute; inset:25px 30px 0 0; background:var(--red); clip-path:polygon(15% 0,100% 0,85% 100%,0 100%); }
 .profile-slash img { position:absolute; inset:59px 58px 44px 45px; width:calc(100% - 103px); height:calc(100% - 103px); object-fit:cover; filter:grayscale(1) contrast(1.25); clip-path:polygon(15% 0,100% 0,85% 100%,0 100%); }

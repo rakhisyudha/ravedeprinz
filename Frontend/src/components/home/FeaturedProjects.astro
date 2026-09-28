@@ -1,5 +1,6 @@
 ---
 import type { FeaturedEntry } from '../../lib/projects';
+import { PROJECT_PAGES_PUBLISHED } from '../../lib/projects';
 import HomeRow from './HomeRow.astro';
 
 interface Props {
@@ -8,10 +9,13 @@ interface Props {
 
 const { entries } = Astro.props;
 
-// Every row points at the projects index. There is no /projects/{slug} page,
-// so a per-project link would be a dead route. `entry.href` still carries the
-// canonical per-project URL for anything that wants it later.
-const rowHref = '/projects';
+// While the case-study pages are unpublished every row points at the projects
+// index, which is a real page; a per-project link would be a 404. `entry.href`
+// still holds the canonical per-project URL, and flipping
+// PROJECT_PAGES_PUBLISHED in lib/projects.ts restores the per-project links
+// here and on the projects list with no other edit.
+const rowHref = (entry: FeaturedEntry) =>
+  PROJECT_PAGES_PUBLISHED ? entry.href : '/projects';
 ---
 
 <section class="home-preview" aria-labelledby="home-featured-title">
@@ -19,7 +23,7 @@ const rowHref = '/projects';
   <ul class="preview-list">
     {entries.map((entry) => (
       <HomeRow
-        href={rowHref}
+        href={rowHref(entry)}
         media={entry.image}
         mediaAlt={`${entry.title} preview`}
         date={String(entry.year)}

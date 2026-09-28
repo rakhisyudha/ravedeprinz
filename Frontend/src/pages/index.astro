@@ -8,6 +8,7 @@ import ContactBlock from '../components/home/ContactBlock.astro';
 import { fetchHome } from '../lib/cms';
 import { loadHomePreview } from '../lib/homePreview';
 import { cached } from '../lib/requestCache';
+import { cvDownloadFilename } from '../data/site';
 import { homeContent as fallbackContent, navigation as fallbackNav } from '../data/site';
 
 // Home is CMS-backed. Render it per request so admin edits are visible on
@@ -45,7 +46,25 @@ const archiveIndex = navigation.filter((item) => ARCHIVE_INDEX_KEYS.has(item.pag
         <h1 class="display">{content.headline_line_one}<br /><span class="accent-word">{content.headline_line_two}</span>{content.headline_line_three}<span class="accent-dot">{content.headline_period}</span></h1>
         <div class="headline-meta"><span>{content.headline_meta}</span><i /></div>
         <p class="lede">{content.intro}</p>
-        <a href={content.cta_url} class="home-cta">{content.cta_label} <b>↗</b></a>
+        <div class="home-cta-row">
+          <a href={content.cta_url} class="home-cta">{content.cta_label} <b>↗</b></a>
+          {/*
+            /cv is a stable route that resolves whatever cv_url currently
+            holds, so this link survives a re-upload. It sets
+            Content-Disposition; the download attribute repeats the filename
+            as a fallback in case a proxy ever drops that header.
+          */}
+          {preview.contact.cvUrl && (
+            <a
+              class="home-cv bracket-btn row-hover--accent"
+              href="/cv"
+              download={cvDownloadFilename}
+              aria-label="Download CV (PDF)"
+            >
+              CV <span aria-hidden="true">↓</span>
+            </a>
+          )}
+        </div>
       </section>
       <aside class="profile-column">
         <div class="hud-only">

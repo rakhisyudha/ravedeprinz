@@ -15,6 +15,10 @@ const { contact } = Astro.props;
   direct method beneath it. The block deliberately ends there: the real site
   footer follows and already closes the page, so this section carries no
   copyright line, no rule, and no status repeat of its own.
+
+  The CV download is not here — it lives in the hero beside the primary CTA.
+  Both read the same `cvUrl` field from the contact view model, so the two
+  placements cannot drift apart.
 */}
 <section class="home-preview contact-block-wrap" aria-labelledby="home-contact-title">
   <p class="home-preview-label" id="home-contact-title">CONTACT <span>// REACH ME</span></p>
@@ -43,17 +47,6 @@ const { contact } = Astro.props;
             </li>
           ))}
         </ul>
-      )}
-      {/* Bracket button, same control as [ ALL PROJECTS ] / [ ALL NOTES ]. */}
-      {contact.cvUrl && (
-        <a
-          class="contact-cv bracket-btn row-hover--accent"
-          href={contact.cvUrl}
-          download
-          aria-label="Download CV (PDF)"
-        >
-          CV <span aria-hidden="true">↓</span>
-        </a>
       )}
     </div>
   </div>
@@ -89,9 +82,6 @@ const { contact } = Astro.props;
   .connect-link:hover { color:var(--red); }
   .connect-link:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
   .contact-connect .connect-link { display:inline-block; margin-top:7px; }
-  /* The CV is a bracket button, not a list link: it carries .bracket-btn from
-     the shared control and only contributes its own spacing here. */
-  .contact-cv { margin-top:14px; }
 
   @media (max-width: 480px) {
     .home-preview { margin-top:32px; }

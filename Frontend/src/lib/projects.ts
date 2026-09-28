@@ -61,6 +61,22 @@ export function projectHref(p: Project): string {
 }
 
 /**
+ * Whether `/projects/{slug}` case-study pages are published.
+ *
+ * They are not yet, so every entry that would link to one points somewhere
+ * real instead: the projects list renders the entry as plain, non-clickable
+ * text, and the home featured strip links to the projects index. This is the
+ * single switch — flip it to true when the pages ship and both surfaces
+ * start linking per project again, with no other edit.
+ */
+export const PROJECT_PAGES_PUBLISHED = false;
+
+/** The link an entry should carry, or null when it must not be a link. */
+export function projectEntryHref(p: Project): string | null {
+  return PROJECT_PAGES_PUBLISHED ? projectHref(p) : null;
+}
+
+/**
  * The projects list artwork: the CMS image when set, otherwise the bundled
  * preview for that slug. The own-property check keeps a slug like "toString"
  * from resolving to an inherited Object.prototype member.

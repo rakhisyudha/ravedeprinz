@@ -21,23 +21,48 @@ const featuredAstro = read('../../src/components/home/FeaturedProjects.astro');
 const notesAstro = read('../../src/components/home/LatestNotes.astro');
 const nowAstro = read('../../src/components/home/NowStatusLine.astro');
 const contactAstro = read('../../src/components/home/ContactBlock.astro');
+const projectsLib = read('../../src/lib/projects.ts');
+const availabilityLib = read('../../src/lib/availability.ts');
+const siteData = read('../../src/data/site.ts');
+const cvRoute = read('../../src/pages/cv.ts');
 const css = read('../../src/styles/global.css');
 
 const markup = (source: string) => source.slice(source.lastIndexOf('---') + 3);
 
 describe('projects list', () => {
-  test('every project title is a link to its case study', () => {
-    expect(projectsAstro).toContain('<h2><a href={href}>');
-    expect(projectsAstro).toContain('projectHref(project)');
+  test('project entries are not clickable while the case-study pages are unpublished', () => {
+    // Single switch, read by both the list and the home strip.
+    expect(projectsLib).toContain('export const PROJECT_PAGES_PUBLISHED = false;');
+    expect(projectsAstro).toContain('projectEntryHref(project)');
+    // The card is never an anchor, so nothing wraps the entry.
+    expect(projectsAstro).toContain("class:list={['record', 'project-record', href && 'lift']}");
+    expect(projectsAstro).not.toMatch(/<article[^>]*>\s*<a /);
+    expect(projectsAstro).not.toContain('project-record lift"');
+    // The title renders as plain text when there is no href.
+    expect(projectsAstro).toContain('{href ? <a href={href}>{project.title}</a> : project.title}');
   });
 
-  test('Live and Source links open in a new tab and are omitted when empty', () => {
+  test('the clickability hover treatment is gone from the entry', () => {
+    // `lift` supplies the offset red border/shadow hover, so it is only
+    // applied when the entry is actually a link.
+    expect(projectsAstro).toContain("href && 'lift'");
+    expect(css).toMatch(/\.lift:hover[^{]*\{[^}]*border-color:var\(--red\)/);
+    // The title's own hover colour change and focus ring are removed.
+    expect(projectsAstro).not.toContain('.project-content h2 a:hover');
+    expect(projectsAstro).not.toContain('.project-content h2 a {');
+  });
+
+  test('Live and Source links still work and are not nested inside a link', () => {
     expect(projectsAstro).toContain(
       '{project.live_url && <a href={project.live_url} target="_blank" rel="noreferrer">Live ↗</a>}',
     );
     expect(projectsAstro).toContain(
       '{project.source_url && <a href={project.source_url} target="_blank" rel="noreferrer">Source ↗</a>}',
     );
+    // The entry element is an <article>, so the external links sit outside any
+    // enclosing anchor — never invalid nested links.
+    const entryOpen = projectsAstro.slice(projectsAstro.indexOf('<article'));
+    expect(entryOpen.slice(0, entryOpen.indexOf('</article>')).indexOf('<a ') > 0).toBe(true);
   });
 
   test('both live and fallback data go through the shared normalization', () => {
@@ -69,9 +94,77 @@ describe('home preview composition', () => {
     expect(indexAstro).toContain('<ContactBlock contact={preview.contact} />');
   });
 
+  test('the per-project href is still what the shared helper produces', () => {
+    // Only the click targets are suppressed. The case-study URL builder is
+    // untouched, so publishing the pages needs no other change.
+    expect(projectsLib).toContain('return `/projects/${resolveProjectSlug(p)}`');
+    expect(projectsLib).toContain('export function projectEntryHref(p: Project): string | null {');
+  });
+
   test('the home fetches go through the request cache', () => {
     expect(indexAstro).toContain('loadHomePreview(Astro.locals)');
     expect(indexAstro).toContain("cached(Astro.locals, 'home', fetchHome)");
+  });
+});
+
+describe('hero CV button', () => {
+  test('a secondary CV button sits beside the primary CTA', () => {
+    expect(indexAstro).toContain('class="home-cta-row"');
+    const row = indexAstro.slice(indexAstro.indexOf('<div class="home-cta-row">'));
+    const primary = row.indexOf('class="home-cta"');
+    const secondary = row.indexOf('class="home-cv bracket-btn row-hover--accent"');
+    expect(primary).toBeGreaterThan(-1);
+    expect(secondary).toBeGreaterThan(primary);
+  });
+
+  test('the primary CTA is unchanged and still the solid red button', () => {
+    expect(indexAstro).toContain('{content.cta_label} <b>↗</b>');
+    expect(css).toMatch(/\.home-cta \{[^}]*background:var\(--red\)/);
+  });
+
+  test('it reuses the shared bracket control, not new styles', () => {
+    // Same two classes as [ ALL PROJECTS ] / [ ALL NOTES ] / the Contact CV.
+    expect(indexAstro).toContain('class="home-cv bracket-btn row-hover--accent"');
+    expect(indexAstro).not.toMatch(/\.home-cv \{/);
+  });
+
+  test('it points at the stable /cv route, not the hashed upload URL', () => {
+    expect(indexAstro).toContain('href="/cv"');
+    // The stored name is hashed and must never be the link or the save name.
+    expect(indexAstro).not.toContain('href={preview.contact.cvUrl}');
+    expect(indexAstro).not.toMatch(/href=\{.*uploads.*\.pdf/);
+  });
+
+  test('it reads the view model, so the Contact section is not a dependency', () => {
+    // The button renders only when a CV exists, and it never reaches into the
+    // Contact component.
+    expect(indexAstro).toContain('{preview.contact.cvUrl && (');
+    expect(availabilityLib).toContain('cvUrl: blankToNull(trimmed(source.cv_url))');
+  });
+
+  test('the download filename comes from one shared constant', () => {
+    // Not hardcoded here: the route and the button both read the same place.
+    expect(indexAstro).toContain("import { cvDownloadFilename } from '../data/site';");
+    expect(indexAstro).toContain('download={cvDownloadFilename}');
+    expect(siteData).toContain("export const cvDownloadFilename = 'Rakhis-de-Yudha-CV.pdf';");
+    expect(cvRoute).toContain("import { cvDownloadFilename } from '../data/site';");
+    // Exactly one place defines it.
+    expect(siteData.match(/cvDownloadFilename =/g)?.length).toBe(1);
+    expect(indexAstro).not.toMatch(/Rakhis-de-Yudha-CV/);
+    expect(cvRoute).not.toMatch(/Rakhis-de-Yudha-CV/);
+  });
+
+  test('it only renders when a CV exists, and wraps on narrow viewports', () => {
+    expect(indexAstro).toContain('{preview.contact.cvUrl && (');
+    expect(css).toMatch(/\.home-cta-row \{[^}]*flex-wrap:wrap/);
+    expect(css).toMatch(/\.home-cta-row \{[^}]*gap:14px/);
+  });
+
+  test('its colours are theme-aware', () => {
+    // .bracket-btn is defined in global.css on theme-aware tokens.
+    expect(css).toMatch(/\.bracket-btn \{[^}]*border:2px solid var\(--line-25\)/);
+    expect(css).toMatch(/\.bracket-btn \{[^}]*color:var\(--text\)/);
+    expect(indexAstro).not.toMatch(/#[0-9a-fA-F]{3,8}/);
   });
 });
 
@@ -224,14 +317,22 @@ describe('shared row template', () => {
 });
 
 describe('featured projects strip', () => {
-  test('every row and the footer button link to the projects index', () => {
-    // Rows are pinned to /projects: there is no /projects/{slug} page, so a
-    // per-project link would be a dead route.
-    expect(featuredAstro).toContain("const rowHref = '/projects';");
-    expect(featuredAstro).toContain('href={rowHref}');
-    expect(featuredAstro).toContain('href="/projects">[ ALL PROJECTS ]');
-    // No row may emit a per-project slug.
+  test('every row links only to real pages, never to a per-project slug', () => {
+    // Driven by the one flag, so flipping it restores per-project links in
+    // both places; while it is false no row can emit /projects/{slug}.
+    expect(featuredAstro).toContain("import { PROJECT_PAGES_PUBLISHED } from '../../lib/projects';");
+    expect(featuredAstro).toContain('const rowHref = (entry: FeaturedEntry) =>');
+    expect(featuredAstro).toContain("PROJECT_PAGES_PUBLISHED ? entry.href : '/projects'");
+    expect(featuredAstro).toContain('href={rowHref(entry)}');
+    // The row must not fall back to the raw per-project href.
     expect(featuredAstro).not.toContain('href={entry.href}');
+  });
+
+  test('the footer button links to the projects index, after the rows', () => {
+    expect(featuredAstro).toContain('href="/projects">[ ALL PROJECTS ]');
+    expect(featuredAstro.indexOf('[ ALL PROJECTS ]')).toBeGreaterThan(
+      featuredAstro.indexOf('</HomeRow>'),
+    );
   });
 
   test('each row feeds the shared template year, status, and description', () => {
@@ -413,21 +514,19 @@ describe('contact block', () => {
     expect(contactAstro).toContain('rel="noreferrer"');
   });
 
-  test('the CV uses the shared bracket button, not new styles', () => {
-    expect(contactAstro).toContain('class="contact-cv bracket-btn row-hover--accent"');
-    // The control is defined once in global.css, not restyled per component.
-    expect(css).toContain('.bracket-btn {');
-    expect(css).toMatch(/\.bracket-btn \{[^}]*border:2px solid var\(--line-25\)/);
-    expect(css).toMatch(/\.bracket-btn \{[^}]*letter-spacing:2px/);
-    // The same two classes the [ ALL ... ] buttons use.
-    expect(featuredAstro).toContain('class="preview-all bracket-btn row-hover--accent"');
-    expect(notesAstro).toContain('class="preview-all bracket-btn row-hover--accent"');
-    // No component redefines the button's own appearance.
-    for (const source of [contactAstro, featuredAstro, notesAstro]) {
-      expect(source).not.toMatch(/\.bracket-btn \{/);
-    }
-    expect(contactAstro).toContain('aria-label="Download CV (PDF)"');
-    expect(contactAstro).toMatch(/class="contact-cv bracket-btn row-hover--accent"[\s\S]*?download/);
+  test('the CV download is not in this section; it lives in the hero', () => {
+    // Asserted against the rendered markup, so prose in the leading comment
+    // cannot satisfy or break it.
+    const body = markup(contactAstro);
+    expect(body).not.toContain('contact-cv');
+    expect(body).not.toContain('bracket-btn');
+    expect(body).not.toContain('contact.cvUrl');
+    expect(body).not.toContain('aria-label="Download CV (PDF)"');
+    // Nothing that existed only to place it survives, in markup or styles.
+    expect(contactAstro).not.toMatch(/\.contact-cv \{/);
+    // The remaining column is just the CONNECT label and the profile links.
+    expect(body).toContain('<p class="connect-label">CONNECT</p>');
+    expect(body).toContain('class="connect-link"');
   });
 
   test('the email reads after the wordmark and tagline, not before them', () => {
