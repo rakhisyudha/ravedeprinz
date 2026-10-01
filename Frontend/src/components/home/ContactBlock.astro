@@ -83,8 +83,39 @@ const { contact } = Astro.props;
   .connect-link:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
   .contact-connect .connect-link { display:inline-block; margin-top:7px; }
 
+  /* Below the breakpoint the two columns stack, and the block stopped reading
+     as a closing section: flush left, uneven gaps, and the profile links
+     trailing off as two grey lines before the footer. Centred here as one
+     deliberate closing block, on an even vertical rhythm, with the profile
+     link taking the shared bracket control's boxed weight — `[ GITHUB ]`,
+     matching `[ ALL PROJECTS ]` — instead of plain grey text. Centring is
+     safe for the wordmark: its hover is a colour swap, not a layout one, and
+     the mark stays an inline-block so it centres as a unit.
+
+     The shared bracket control is not carried in the markup because it would
+     box the links in the desktop two-column layout too, where the CONNECT
+     column is a quiet list; only the mobile presentation changes, so the
+     treatment is declared for the mobile link rather than reused as a class.
+     Desktop is untouched above this block. */
   @media (max-width: 480px) {
-    .home-preview { margin-top:32px; }
-    .contact-cols { grid-template-columns:minmax(0,1fr); gap:26px; }
+    .home-preview { margin-top:32px; padding-bottom:24px; text-align:center; }
+    .home-preview-label { justify-content:center; }
+    .contact-cols { grid-template-columns:minmax(0,1fr); gap:30px; }
+
+    /* Even rhythm through the stacked column: wordmark → tagline → email →
+       CONNECT, none of them crowding its neighbour. */
+    .contact-tagline { margin-top:16px; }
+    .contact-direct { margin-top:16px; }
+    .contact-note { margin-top:12px; }
+
+    /* Bracket-button treatment, matching the shared bracket box and its
+       accent hover so the link carries weight instead of floating below the
+       block as bare text. */
+    .connect-list { gap:10px; }
+    .contact-connect a { margin-top:0; border:2px solid var(--line-25); padding:9px 14px; color:var(--text); letter-spacing:2px; transition:border-color .2s ease,color .2s ease,box-shadow .2s ease,transform .2s ease; }
+    .contact-connect a::before { content:'['; }
+    .contact-connect a::after { content:']'; }
+    .contact-connect a:hover,.contact-connect a:focus-visible { border-color:var(--red); color:var(--red); transform:translate(-2px,-2px); box-shadow:4px 4px 0 var(--dark-red); }
+    .contact-connect a:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
   }
 </style>
