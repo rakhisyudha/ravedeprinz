@@ -260,6 +260,42 @@ describe('shared row template', () => {
     expect(body).not.toMatch(/<b[^>]*>\s*<a/);
   });
 
+  test('the optional subtitle sits between the title line and the description', () => {
+    const body = markup(rowAstro);
+    // Guarded, so a note with no subtitle renders no empty line.
+    expect(body).toContain('{subtitle && (');
+    const head = body.indexOf('class="row-head"');
+    const bodyBlock = body.indexOf('class="row-body"');
+    const subtitle = body.indexOf("'row-subtitle'");
+    const desc = body.indexOf("'row-desc'");
+    expect(head).toBeLessThan(bodyBlock);
+    // Both secondary lines travel inside the one block, in reading order.
+    expect(bodyBlock).toBeLessThan(subtitle);
+    expect(subtitle).toBeLessThan(desc);
+    // Same rule as the description, so the two lines cannot drift apart in
+    // size, weight, colour, or truncation.
+    expect(rowAstro).toMatch(/\.row-subtitle,\n\s*\.row-desc \{[^}]*color:var\(--text-muted\)[^}]*font:var\(--type-small\)/);
+  });
+
+  test('every secondary line is styled by the one shared template', () => {
+    // Featured Work rows and Latest Notes rows are the same component, so
+    // title, date, tag, subtitle and description cannot drift between the two
+    // lists: there is exactly one declaration of each, here.
+    for (const selector of [
+      '.row-title { font:700 var(--type-body) var(--font-ui);',
+      '.row-badge { color:var(--red); font:700 var(--type-label) var(--font-ui);',
+      '.row-date { min-width:176px;',
+      '.row-subtitle,\n  .row-desc { color:var(--text-muted); font:var(--type-small) var(--font-ui);',
+    ]) {
+      expect(rowAstro).toContain(selector);
+    }
+    // And no list re-declares any of them locally.
+    for (const source of [featuredAstro, notesAstro, nowAstro]) {
+      expect(source).not.toContain('font-size:');
+      expect(source).not.toContain('font-weight:');
+    }
+  });
+
   test('the date track can never be narrower than the date text', () => {
     // Regression: a fixed 86px track plus `white-space: nowrap` let
     // "27 AUG 2026" spill straight over the title. The track is now `auto`, so
@@ -287,9 +323,51 @@ describe('shared row template', () => {
     expect(rowAstro).toContain('.home-row--no-media { grid-template-columns:auto minmax(0,1fr) 34px; }');
   });
 
-  test('the mobile breakpoint stacks so the date gets its own full-width line', () => {
-    expect(rowAstro).toMatch(/@media \(max-width: 480px\) \{[\s\S]*\.row-date \{ grid-column:1 \/ -1;/);
-    expect(rowAstro).toMatch(/@media \(max-width: 480px\) \{[\s\S]*\.row-copy \{ grid-column:1 \/ -1;/);
+  test('the mobile breakpoint uses one stack for both lists', () => {
+    // Featured Work and Latest Notes must differ only in which props they pass,
+    // never in where anything sits. Every row is:
+    //   1 thumbnail | 2 title + date | 3 status/tag | 4 subtitle/description
+    //   | 5 read time (Notes only).
+    expect(rowAstro).toMatch(/\.row-media \{ grid-row:1; grid-column:1 \/ -1;[^}]*aspect-ratio:16\/9;/);
+    // Title leads; date shares its line, right-aligned, at label size — so the
+    // date no longer outweighs the title it belongs to.
+    expect(rowAstro).toMatch(/\.row-title \{ grid-row:2; grid-column:1;[^}]*clamp\(/);
+    expect(rowAstro).toMatch(/\.row-date \{ grid-row:2; grid-column:2;[^}]*text-align:right;[^}]*font:700 var\(--type-label\)/);
+    // Status and tag both land directly under the title, left-aligned. This is
+    // the standardisation: they used to sit in the right column, in different
+    // rows, so FINISHED and MEMOIR read as two unrelated placements.
+    expect(rowAstro).toMatch(/\.row-badge \{ grid-row:3; grid-column:1; text-align:left; \}/);
+    expect(rowAstro).not.toMatch(/\.row-badge \{ grid-row:3; grid-column:2/);
+    // Secondary lines full width, below the tag.
+    expect(rowAstro).toMatch(/\.row-body \{ grid-row:4; grid-column:1 \/ -1;/);
+  });
+
+  test('one grid row for the secondary lines, so no list is left with a gap', () => {
+    // Subtitle and description are placed as a single `.row-body` block. As two
+    // separate rows the list holding only one of them — Featured Work has no
+    // subtitle, the Now line has neither — would keep an empty row and a gap
+    // that reads as a mistake, which is the inconsistency being removed.
+    expect(rowAstro).toContain('.row-body { display:flex; flex-direction:column; gap:6px; min-width:0; }');
+    // Above the breakpoint the wrapper is transparent: same 6px gap as the
+    // copy column it sits in, so desktop renders unchanged.
+    expect(rowAstro).toContain('.row-copy { display:flex; flex-direction:column; gap:6px; min-width:0; }');
+    expect(rowAstro).toMatch(/\.row-copy,\n\s*\.row-head \{ display:contents; \}/);
+    // The Now row carries neither media nor a badge, so its stack starts at
+    // the top instead of holding two empty rows above the label.
+    expect(rowAstro).toMatch(/\.home-row--no-media \.row-title,\n\s*\.home-row--no-media \.row-date \{ grid-row:1; \}/);
+    expect(rowAstro).toMatch(/\.home-row--no-media \.row-body \{ grid-row:2; \}/);
+  });
+
+  test('the mobile arrow is anchored to the row, not stranded in the copy', () => {
+    // It used to take a row of its own at the bottom, which read as floating
+    // in empty space below the description. Pinned to the corner instead — and
+    // that only works because the row is the positioned ancestor.
+    expect(rowAstro).toMatch(/\.row-arrow \{ position:absolute; right:0; bottom:0;/);
+    // Regression guard: an absolute child with no positioned parent drifts to
+    // the nearest positioned ancestor, or the page.
+    expect(rowAstro).toMatch(/\.home-row \{ position:relative;/);
+    // The last line reserves the arrow's gutter so text never runs under it.
+    expect(rowAstro).toMatch(/\.row-body \{ grid-row:4; grid-column:1 \/ -1; padding-right:32px; \}/);
   });
 
   test('the description clamp is opt-out, for text that must show in full', () => {
@@ -363,6 +441,19 @@ describe('latest notes strip', () => {
     expect(notesAstro).toContain('description={entry.readLabel}');
     // Notes now carry artwork through the same media cell as projects.
     expect(notesAstro).toContain('media={entry.image}');
+  });
+
+  test('each row also feeds the CMS subtitle through to the template', () => {
+    // The subtitle exists on the note and is already shown on the note detail
+    // page; the homepage strip dropped it. It renders between the title line
+    // and the reading time.
+    expect(notesAstro).toContain('subtitle={entry.subtitle}');
+    const subtitle = notesAstro.indexOf('subtitle={entry.subtitle}');
+    expect(subtitle).toBeGreaterThan(notesAstro.indexOf('badge={entry.tag}'));
+    expect(subtitle).toBeLessThan(notesAstro.indexOf('description={entry.readLabel}'));
+    // Featured Work passes no subtitle: its description already fills that
+    // slot, so the two strips must not both grow a standfirst.
+    expect(featuredAstro).not.toContain('subtitle=');
   });
 });
 

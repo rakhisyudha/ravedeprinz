@@ -17,6 +17,8 @@ interface Props {
   title: string;
   /** Status or tag. Omitted where a badge would be noise. */
   badge?: string;
+  /** Standfirst under the title, above the description. Omitted where the entry has none. */
+  subtitle?: string | null;
   description?: string;
   /** Accessible name; defaults to the title. */
   ariaLabel?: string;
@@ -32,6 +34,7 @@ const {
   date,
   title,
   badge = '',
+  subtitle = '',
   description = '',
   ariaLabel,
   clamp = true,
@@ -55,9 +58,14 @@ const {
         <b class="row-title">{title}</b>
         {badge && <span class="row-badge">{badge}</span>}
       </span>
-      {description && (
-        <span class:list={['row-desc', { 'line-clamp-1': clamp }]}>{description}</span>
-      )}
+      <span class="row-body">
+        {subtitle && (
+          <span class:list={['row-subtitle', { 'line-clamp-1': clamp }]}>{subtitle}</span>
+        )}
+        {description && (
+          <span class:list={['row-desc', { 'line-clamp-1': clamp }]}>{description}</span>
+        )}
+      </span>
     </span>
     <span class="row-arrow" aria-hidden="true">↗</span>
   </a>
@@ -117,22 +125,72 @@ const {
   .row-date { min-width:176px; color:var(--text-faint); font:var(--type-numeral) var(--font-display); white-space:nowrap; }
 
   .row-copy { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  /* The secondary lines travel as one block so the mobile layout can place
+     them in a single grid row. Carries the same 6px gap `.row-copy` uses, so
+     above the breakpoint the two render exactly as they did unwrapped. */
+  .row-body { display:flex; flex-direction:column; gap:6px; min-width:0; }
   .row-head { display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; min-width:0; }
   .row-title { font:700 var(--type-body) var(--font-ui); letter-spacing:.5px; overflow-wrap:anywhere; }
   .row-badge { color:var(--red); font:700 var(--type-label) var(--font-ui); letter-spacing:2px; }
+  /* The standfirst and the description are the same kind of line — a small
+     muted sentence under the title — so they share one rule and the
+     `.line-clamp-1` truncation cannot drift between them. */
+  .row-subtitle,
   .row-desc { color:var(--text-muted); font:var(--type-small) var(--font-ui); overflow-wrap:anywhere; }
   .row-arrow { color:var(--text-faint); font:var(--type-body) var(--font-ui); }
   .line-clamp-1 { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 
+  /* Mobile. One layout for every row, whichever list it came from — Featured
+     Work and Latest Notes differ only in which props they pass, never in where
+     anything sits:
+
+       1  thumbnail            (full bleed, unchanged)
+       2  Title ......... Date  (date right-aligned, on the title's baseline)
+       3  Status / Tag          (FINISHED, MEMOIR — left, directly under the title)
+       4  Subtitle / Description (full width)
+       5  Read time             (Notes only; the lists without one end at 4)
+
+     The subtitle and the description share one grid row as a single
+     `.row-body` block. Placed as two separate items they would need one row
+     each, and the list that has only one of them — Featured Work has no
+     subtitle, the Now line has neither — would be left holding an empty row
+     and a gap that reads as a mistake. One block, one row, no phantom rows.
+
+     The date must share the title's line, but on desktop it is a sibling of
+     `.row-copy` while the title is two levels inside it. Flattening the two
+     wrappers (`display:contents`) lets every line be placed on the row's own
+     grid with nothing moved in the markup, so the desktop column order — and
+     every assertion about it — is untouched.
+
+     The arrow is pinned to the row's bottom-right corner instead of taking a
+     row of its own, which is what left it stranded below the copy with nothing
+     to align to. `.home-row`'s `position:relative` above is what makes that
+     anchor real, and `.row-body` reserves the arrow's gutter so the last line
+     never runs under it. */
   @media (max-width: 480px) {
-    /* Stack: media, then date, then copy, arrow last. Full-width tracks mean
-       the date no longer competes with the title for horizontal space. */
     .home-row,
-    .home-row--no-media { grid-template-columns:minmax(0,1fr) 24px; gap:12px; }
-    .row-media { grid-column:1 / -1; width:100%; height:auto; aspect-ratio:16/9; }
-    .row-date { grid-column:1 / -1; min-width:0; }
-    .row-copy { grid-column:1 / -1; min-width:0; }
-    .row-arrow { grid-column:2; }
+    .home-row--no-media { grid-template-columns:minmax(0,1fr) auto; gap:10px 14px; align-items:baseline; }
+    .row-copy,
+    .row-head { display:contents; }
+
+    /* Thumbnail, unchanged: still the full-bleed 16:9 plate on top. */
+    .row-media { grid-row:1; grid-column:1 / -1; width:100%; height:auto; aspect-ratio:16/9; }
+
+    .row-title { grid-row:2; grid-column:1; min-width:0; color:var(--text); font:700 clamp(19px,5.2vw,28px)/1.05 var(--font-display); letter-spacing:0; overflow-wrap:anywhere; }
+    .row-date { grid-row:2; grid-column:2; min-width:0; text-align:right; font:700 var(--type-label) var(--font-ui); letter-spacing:2px; }
+    .row-badge { grid-row:3; grid-column:1; text-align:left; }
+
+    .row-body { grid-row:4; grid-column:1 / -1; padding-right:32px; }
+
+    /* The Now row has no media cell and no badge, so its stack starts at the
+       top rather than holding two empty rows above the label. */
+    .home-row--no-media .row-title,
+    .home-row--no-media .row-date { grid-row:1; }
+    .home-row--no-media .row-body { grid-row:2; }
+
+    /* Bottom-right corner of the row, anchored to `.home-row`. */
+    .row-arrow { position:absolute; right:0; bottom:0; grid-row:auto; grid-column:auto; }
+
     .line-clamp-1 { white-space:normal; overflow-wrap:anywhere; }
   }
 </style>

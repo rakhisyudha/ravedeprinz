@@ -9,7 +9,11 @@ interface Props {
 const { entries } = Astro.props;
 ---
 
-{/* Same row template as Featured Work: media, date, title + tag, arrow. */}
+{/* Same row template as Featured Work: media, date, title + tag, arrow.
+    Notes additionally carry the CMS note's subtitle, which renders between the
+    title line and the reading time. Featured Work passes no subtitle — its
+    `description` already occupies that slot — so the two strips stay
+    distinct without the template needing to know which list it is drawing. */}
 <section class="home-preview" aria-labelledby="home-notes-title">
   <p class="home-preview-label" id="home-notes-title">LATEST NOTES <span>// TRANSMISSIONS</span></p>
   <ul class="preview-list">
@@ -21,6 +25,7 @@ const { entries } = Astro.props;
         date={entry.dateLabel}
         title={entry.title}
         badge={entry.tag}
+        subtitle={entry.subtitle}
         description={entry.readLabel}
         ariaLabel={`${entry.title}, ${entry.tag}, ${entry.readLabel}`}
       />

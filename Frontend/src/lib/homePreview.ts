@@ -20,6 +20,13 @@ export type NoteEntry = {
   href: string;
   /** Artwork for the shared row's media cell; null falls back to the placeholder. */
   image: string | null;
+  /**
+   * The CMS note's subtitle, trimmed; null when blank or absent. Renders on
+   * the homepage strip under the title, above the read time. Deliberately the
+   * same view the note detail page already uses, so a note's standfirst cannot
+   * differ between the two pages.
+   */
+  subtitle: string | null;
 };
 
 export type NowPayload = { current: NowCurrent | null } | null;
@@ -34,6 +41,7 @@ export type HomePreview = {
 
 function toNoteEntry(note: Note): NoteEntry {
   const image = note.image_url?.trim() ?? '';
+  const subtitle = note.subtitle?.trim() ?? '';
   return {
     title: note.title,
     tag: note.tag,
@@ -41,6 +49,9 @@ function toNoteEntry(note: Note): NoteEntry {
     readLabel: readLabel(note),
     href: `/notes/${noteSlug(note)}`,
     image: image === '' ? null : image,
+    // Blank collapses to null so a whitespace-only subtitle never renders an
+    // empty line between the title and the read time.
+    subtitle: subtitle === '' ? null : subtitle,
   };
 }
 
