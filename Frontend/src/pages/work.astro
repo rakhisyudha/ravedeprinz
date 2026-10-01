@@ -25,7 +25,7 @@ const work =
   <PageHead index="FIELD RECORD / 003" title="WORK" intro="A record of the teams and responsibilities that shaped how I work. Not a résumé. A map of decisions and outcomes.">
     <section class="record-list">
       {work.map((item, index) => (
-        <article class="record lift">
+        <article class="record">
           <span class="record-number">0{index + 1}<small>{item.date_label}</small></span>
           <div>
             <p class="eyebrow">{item.company}{item.location ? ` / ${item.location}` : ''}</p>

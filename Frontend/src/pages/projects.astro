@@ -20,14 +20,17 @@ const deploymentVariants = { DEPLOYED: 'deployed', NOT_DEPLOYED: 'not-deployed' 
     <section class="record-list">
       {projects.map((project, index) => {
         // Null until the case-study pages exist, which makes the entry plain
-        // non-interactive text instead of a link to a 404.
+        // non-interactive text instead of a link to a 404. It gates the title
+        // link only: the card is never an anchor (see the note below), so it
+        // never gets the `lift` interaction — that treatment belongs on the
+        // element you can actually click.
         const href = projectEntryHref(project);
         const image = projectImage(project);
         const statusVariant = statusVariants[project.status] ?? 'shelved';
         const deploymentVariant = deploymentVariants[project.deployment_status] ?? 'not-deployed';
         const deploymentLabel = project.deployment_status === 'DEPLOYED' ? 'DEPLOYED' : 'NOT DEPLOYED';
         return (
-          <article class:list={['record', 'project-record', href && 'lift']}>
+          <article class:list={['record', 'project-record']}>
             <span class="record-number">0{index + 1}<small>{project.year}</small></span>
             <div class="project-content">
               <div class="project-media">

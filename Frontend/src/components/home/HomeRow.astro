@@ -99,7 +99,12 @@ const {
      it — an undersized fixed track is what let a long date spill over the
      title. `.row-date`'s min-width is what aligns the short dates ("11 SEP")
      to the same x as the long ones ("27 AUG 2026") across every row. */
-  .home-row { position:relative; display:grid; grid-template-columns:112px auto minmax(0,1fr) 34px; gap:16px; align-items:center; padding:14px 0; border-top:1px solid var(--line-16); text-decoration:none; color:inherit; }
+  /* `--card-pad-y` is this link's own block padding, published so the shared
+     red accent in global.css can trace the CONTENT box. `top`/`bottom` on an
+     absolutely positioned pseudo-element resolve against the padding box, so
+     without this the bar runs the full link — 14px above the thumbnail and
+     14px below the last line — instead of the visible card. */
+  .home-row { --card-pad-y:14px; position:relative; display:grid; grid-template-columns:112px auto minmax(0,1fr) 34px; gap:16px; align-items:center; padding:var(--card-pad-y) 0; border-top:1px solid var(--line-16); text-decoration:none; color:inherit; }
   /* No media cell: three tracks for three children, so the date does not
      inherit the thumbnail's width. */
   .home-row--no-media { grid-template-columns:auto minmax(0,1fr) 34px; }
@@ -137,7 +142,11 @@ const {
      `.line-clamp-1` truncation cannot drift between them. */
   .row-subtitle,
   .row-desc { color:var(--text-muted); font:var(--type-small) var(--font-ui); overflow-wrap:anywhere; }
-  .row-arrow { color:var(--text-faint); font:var(--type-body) var(--font-ui); }
+  /* ~40% over the base --type-body — a further ~17% on top of the previous
+     1.2, landing inside the 15-25% band for the bump. Expressed as a ratio of
+     the token so it tracks the type scale, and kept well under the mobile
+     title's clamp(19px,…,28px) so it never competes with it. */
+  .row-arrow { color:var(--text-faint); font:calc(var(--type-body) * 1.4) var(--font-ui); }
   .line-clamp-1 { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 
   /* Mobile. One layout for every row, whichever list it came from — Featured
@@ -168,6 +177,14 @@ const {
      anchor real, and `.row-body` reserves the arrow's gutter so the last line
      never runs under it. */
   @media (max-width: 480px) {
+    /* At this width the row is a standalone card, not one line in a ruled
+       list, so the connecting hairline gives way to a gap. The 5px offset
+       global.css puts behind every `.row-hover` row needs room of its own, so
+       the gap is larger than the offset: 20px gives the layer somewhere to
+       land instead of leaving it touching the next card. */
+    .home-row-item { margin-bottom:20px; }
+    .home-row { border-top:0; }
+
     .home-row,
     .home-row--no-media { grid-template-columns:minmax(0,1fr) auto; gap:10px 14px; align-items:baseline; }
     .row-copy,
@@ -177,10 +194,16 @@ const {
     .row-media { grid-row:1; grid-column:1 / -1; width:100%; height:auto; aspect-ratio:16/9; }
 
     .row-title { grid-row:2; grid-column:1; min-width:0; color:var(--text); font:700 clamp(19px,5.2vw,28px)/1.05 var(--font-display); letter-spacing:0; overflow-wrap:anywhere; }
-    .row-date { grid-row:2; grid-column:2; min-width:0; text-align:right; font:700 var(--type-label) var(--font-ui); letter-spacing:2px; }
+    /* `padding-right` clears the 3px red bar, which global.css moves to the
+       right edge at this width: the date is right-aligned and would otherwise
+       run under it. */
+    .row-date { grid-row:2; grid-column:2; min-width:0; text-align:right; font:700 var(--type-label) var(--font-ui); letter-spacing:2px; padding-right:6px; }
     .row-badge { grid-row:3; grid-column:1; text-align:left; }
 
-    .row-body { grid-row:4; grid-column:1 / -1; padding-right:32px; }
+    /* Inset from both the right and bottom edges, so the glyph never touches the
+       card boundary. 38px clears the larger arrow (≈24px wide, sitting 6px
+       in) and keeps the last line of copy clear of it. */
+    .row-body { grid-row:4; grid-column:1 / -1; padding-right:38px; }
 
     /* The Now row has no media cell and no badge, so its stack starts at the
        top rather than holding two empty rows above the label. */
@@ -188,8 +211,9 @@ const {
     .home-row--no-media .row-date { grid-row:1; }
     .home-row--no-media .row-body { grid-row:2; }
 
-    /* Bottom-right corner of the row, anchored to `.home-row`. */
-    .row-arrow { position:absolute; right:0; bottom:0; grid-row:auto; grid-column:auto; }
+    /* Bottom-right corner of the row, anchored to `.home-row`, held clear of both
+       the right edge and the red bar on it. */
+    .row-arrow { position:absolute; right:6px; bottom:6px; grid-row:auto; grid-column:auto; }
 
     .line-clamp-1 { white-space:normal; overflow-wrap:anywhere; }
   }

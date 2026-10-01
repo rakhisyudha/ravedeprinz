@@ -34,6 +34,18 @@
   --line-30:rgba(255,255,255,.30);
   --line-35:rgba(255,255,255,.35);
   --red:var(--primary); --dark-red:var(--secondary);
+  /* Second layer of the two-layer card offset. `--red` is the accent layer
+     nearest the card; this is the solid block behind it, and it runs opposite
+     to the theme so it is actually visible: near-white under the dark shell,
+     near-black under the light one. `--dark-red` (#732424) is too close to
+     the dark background to read as a block at all, which is why the offset
+     used to vanish there. Only the hover/press treatments use it; static
+     decorative offsets keep --dark-red. */
+  --layer-neutral:#f0eeea;
+  /* Soft variant of the accent, for static decorative offsets that predate the
+     two-layer hover treatment (see `.panel`). Theme-aware, so the light theme
+     no longer inherits the dark theme's red at 48%. */
+  --offset-soft:rgba(115,36,36,.48);
   --gray:var(--text-faint);
   /* ——— Type system ———
      Scale steps follow the golden ratio loosely (phi ~= 1.618):
@@ -86,6 +98,9 @@ html[data-theme="light"] {
   --line-28:rgba(0,0,0,.20);
   --line-30:rgba(0,0,0,.21);
   --line-35:rgba(0,0,0,.25);
+  /* Near-black, so the offset block reads against the light surface. */
+  --layer-neutral:#1a1714;
+  --offset-soft:rgba(156,58,58,.48);
 }
 
 /* Light-theme backdrop and effect adjustments. The dark layer above remains
@@ -194,7 +209,7 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .slash { color:var(--red); }
 .cut { clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,28px 100%,0 calc(100% - 28px)); }
 .cut-small { clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px)); }
-.panel { background:var(--surface); border:1px solid var(--line-16); box-shadow:10px 10px 0 rgba(115,36,36,.48); }
+.panel { background:var(--surface); border:1px solid var(--line-16); box-shadow:10px 10px 0 var(--offset-soft); }
 .hud-number { color:var(--red); }.hud-stat { border-color:var(--line-14); }
 .hud-panel { min-height:440px; position:relative; transform:rotate(-6deg); transform-origin:center; border:4px solid var(--red); background:var(--background); box-shadow:12px 12px 0 var(--secondary); clip-path:polygon(0 4%,8% 0,34% 2%,58% 0,100% 7%,97% 31%,100% 61%,94% 100%,67% 97%,42% 100%,12% 96%,0 74%,3% 43%); }
 .hud-panel::before { content:''; position:absolute; inset:0; z-index:1; background:var(--primary); opacity:.12; clip-path:polygon(0 0,100% 7%,100% 18%,0 11%); }
@@ -228,9 +243,15 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .page-head .eyebrow { margin-bottom:19px; }
 @keyframes page-head-in { from { opacity:0; transform:translateX(-35px); } }
 .stripe { height:2px; background:var(--red); transform:skewX(-30deg); transform-origin:left; }
-.lift { transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease; }
-.lift:hover,.lift:focus-visible { transform:translate(-6px,-6px) skewX(-1deg); border-color:var(--red); box-shadow:12px 12px 0 var(--dark-red); }
-.lift:focus-visible { outline:2px solid var(--red); outline-offset:5px; }
+/* `position: relative` is the containing block the mobile red accent below
+   anchors to. It carries no offsets, so it changes nothing on desktop. */
+.lift { position:relative; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease; }
+/* Same rule as `.row-hover`: movement only inside the capability query, focus
+   static, touch a flat layered card, and a width-based disarm at the row
+   breakpoint. */
+.lift:focus-visible { border-color:var(--red); box-shadow:12px 12px 0 var(--red),24px 24px 0 var(--layer-neutral); outline:2px solid var(--red); outline-offset:5px; }
+@media (hover: hover) and (pointer: fine) { .lift:hover { transform:translate(-6px,-6px) skewX(-1deg); border-color:var(--red); box-shadow:12px 12px 0 var(--red),24px 24px 0 var(--layer-neutral); } }
+@media (hover: none), (pointer: coarse) { .lift:hover { transform:none; }.lift:active { transform:none; filter:none; background:var(--surface); box-shadow:0 5px 0 var(--red); } }
 .red-text { color:var(--red); }
 .gold-line { height:1px; background:linear-gradient(90deg,var(--red),transparent); }
 .auth-page { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:calc(100vh - 78px - env(safe-area-inset-top, 0px)); padding:calc(120px + env(safe-area-inset-top, 0px)) 48px 80px; overflow:hidden; }
@@ -439,21 +460,195 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
    One definition of the archive-row hover, used by every full-width
    clickable row on the home page (Archive Index, Featured Work, Latest
    Notes, Now): a red bar scales in down the left edge, the row shifts and
-   skews, a hard red shadow lands behind it, and the trailing arrow nudges
-   out. Carry `.row-hover` on the row and `.row-arrow` on its arrow; the
-   behaviour is then maintained in exactly one place.
+   skews, a hard two-layer offset lands behind it, and the trailing arrow
+   nudges out. Carry `.row-hover` on the row and `.row-arrow` on its arrow;
+   the behaviour is then maintained in exactly one place.
    `.row-hover--accent` is the same idea trimmed for compact inline links,
    where a full-width shift would break the row — accent border and glow
-   only. */
+   only.
+
+   The transform is gated on hover *capability*, not on width, and that is the
+   whole point. `skewX` displaces every point by its distance from the row's
+   centre, so it is near-invisible on a single-line desktop row but on a
+   stacked phone row (~350px tall) it swings the top edge ~10px right while
+   the bottom swings ~10px left — shearing the thumbnail into a
+   parallelogram. Added to the 10px translate and a 10px shadow that overran
+   the page gutter outright. And with no capability guard, `:hover` latches
+   on touch after a tap and left the row stuck skewed and shifted until the
+   user tapped elsewhere.
+
+   Hover-capable pointers keep the effect exactly as it was. Touch gets a
+   press-only `scale(.98)`: it shrinks toward the finger, so it cannot push
+   past the viewport however tall the row is, and it reverts on release.
+   Keyboard focus is deliberately NOT gated — `:focus-visible` is not a
+   pointer affordance and must look identical on every device.
+
+   Two-layer offset: `--red` nearest the card, `--layer-neutral` as the solid
+   block behind it, which follows the theme in the opposite direction. */
+/* Movement lives ONLY inside the capability query below. Nothing that
+   translates or skews is ever declared outside it, so a device that reports
+   `(hover: hover)` — an emulated viewport, a hybrid with a trackpad, anything
+   misreporting the feature — degrades to a flat card instead of inheriting the
+   skewed one. The previous version gated the broken rule rather than gating
+   the working one, which meant any misreport brought the overflow straight
+   back. Focus never moved the card in the first place: `:focus-visible` is how
+   a keyboard user knows where they are, so it gets a static layered offset
+   and an outline, identically on every device. */
 .row-hover { position:relative; transition:background .2s ease,transform .2s ease,box-shadow .2s ease; }
 .row-hover::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--red); transform:scaleY(0); transform-origin:bottom; transition:transform .2s ease; }
-.row-hover:hover::before,.row-hover:focus-visible::before { transform:scaleY(1); }
-.row-hover:hover { background:var(--surface); transform:translateX(10px) skewX(-3deg); box-shadow:10px 8px 0 var(--dark-red); }
-.row-hover:focus-visible { background:var(--surface); transform:translateX(10px) skewX(-3deg); box-shadow:10px 8px 0 var(--dark-red); outline:2px solid var(--red); outline-offset:4px; }
+/* Focus: static layered offset + outline. No transform — a movement
+   affordance belongs to a pointer, and a tap must not leave one behind. */
+.row-hover:focus-visible { background:var(--surface); box-shadow:10px 8px 0 var(--red),20px 16px 0 var(--layer-neutral); outline:2px solid var(--red); outline-offset:4px; }
+.row-hover:focus-visible::before { transform:scaleY(1); }
 .row-arrow { transition:transform .2s ease; }
-.row-hover:hover .row-arrow,.row-hover:focus-visible .row-arrow { transform:translate(5px,-5px); }
 .row-hover--accent { position:relative; transition:border-color .2s ease,color .2s ease,box-shadow .2s ease,transform .2s ease; }
-.row-hover--accent:hover,.row-hover--accent:focus-visible { border-color:var(--red); color:var(--red); transform:translate(-2px,-2px); box-shadow:4px 4px 0 var(--dark-red); }
+.row-hover--accent:focus-visible { border-color:var(--red); color:var(--red); box-shadow:4px 4px 0 var(--red),8px 8px 0 var(--layer-neutral); }
+
+/* Mouse. The only place a row is allowed to move. */
+@media (hover: hover) and (pointer: fine) {
+  .row-hover:hover { background:var(--surface); transform:translateX(10px) skewX(-3deg); box-shadow:10px 8px 0 var(--red),20px 16px 0 var(--layer-neutral); }
+  .row-hover:hover::before { transform:scaleY(1); }
+  .row-hover:hover .row-arrow { transform:translate(5px,-5px); }
+  .row-hover--accent:hover { border-color:var(--red); color:var(--red); transform:translate(-2px,-2px); box-shadow:4px 4px 0 var(--red),8px 8px 0 var(--layer-neutral); }
+  /* One press treatment per element. The global `a:active` brightness flash
+     would stack on top of the hover state here; only the filter is cancelled,
+     because `transform` is what carries the hover movement and neutralising it
+     would make the row snap back mid-click. The scale(.96) in that global rule
+     already loses to `.row-hover:hover` on specificity. */
+  .row-hover:active,
+  .row-hover--accent:active { filter:none; }
+}
+
+/* Touch. Nothing on a touch device is allowed to translate or skew, so the
+   mouse treatment is disarmed explicitly in case `:hover` latches after a
+   tap. Pressing fills the surface and drops an accent-coloured offset in
+   place. No transform, so the row cannot grow past the page gutter however
+   tall it is. The resting layered card is set by width below, not here: above
+   480px a row is still one line in a ruled list, and a permanent offset would
+   land on the next row's border. */
+@media (hover: none), (pointer: coarse) {
+  .row-hover:hover,
+  .row-hover:hover .row-arrow,
+  .row-hover--accent:hover { transform:none; }
+  .row-hover:active,
+  .row-hover--accent:active { transform:none; filter:none; }
+  .row-hover:active { background:var(--surface); box-shadow:0 5px 0 var(--red); transition:background .12s ease,box-shadow .12s ease; }
+}
+
+/* Narrow viewport — the resting layered card, and the structural guarantee.
+   The card stays upright: a solid `--layer-neutral` layer behind it offset
+   down-and-right, the red accent down the left edge, nothing moving. Width is
+   reported reliably and media features are not, so this also switches every
+   transform off by viewport alone — which is what stops the overflow returning
+   at 360-430px whatever a device claims about its pointer. Placed after the
+   capability query so it wins the source-order tie.
+
+   Geometry: the card is inset a few pixels from the content edge rather than
+   spanning it. At full content width it read as a website panel with
+   decorative edges rather than a graphic object on the page, and the offset
+   then had nowhere to go. `margin-inline` (not a page margin, and not a
+   `width` calc) shrinks the card box itself, so the clickable area and the
+   visible card stay the same object, and the 5px depth lands in the gap
+   below it with room to spare. It also normalises the Archive Index's per-row
+   collage offsets at this width — this rule is later in the sheet and equal
+   specificity, so a uniform inset replaces the stagger, which is the right
+   read when every row is a separate card.
+
+   Offset weight and shape: `0 5px`, bottom only. The neutral layer is
+   deliberately high-contrast — broken white under the dark shell, near-black
+   under the light one, via `--layer-neutral` alone — and at an L-shaped
+   `5px 5px` it wrapped the card's right edge as well as its foot, so it read
+   as a frame with the card sitting inside it. Dropping the x-offset to zero
+   leaves a single platform under the card, which reads as depth the object
+   stands on. The red 3px bar stays the primary vertical accent, so the
+   hierarchy is card, then red accent, then the neutral beneath. Weight is
+   reduced through geometry, never through contrast, so both themes keep the
+   inversion and only the depth changes.
+
+   This is deliberately not the desktop geometry. Desktop keeps its
+   directional two-layer shadow and its hover movement; a bottom-only depth is
+   the mobile reading of the same idea, and mobile does not need to reproduce
+   desktop literally. Press uses the identical `0 5px` — only the colour
+   changes, neutral to red — so nothing moves, grows, or shrinks under the
+   finger.
+
+   The offset is a single shadow, offset down only. Nothing in this block
+   declares a shadow on more than one axis, and none on all four sides, which
+   is what would make the neutral layer read as a border around the card
+   instead of a block beneath it. */
+@media (max-width: 480px) {
+  .row-hover,
+  .row-hover:hover,
+  .row-hover:focus-visible,
+  .row-hover:active,
+  .row-hover--accent,
+  .row-hover--accent:hover,
+  .row-hover--accent:focus-visible,
+  .row-hover--accent:active { transform:none; filter:none; }
+
+  .row-hover,
+  .row-hover:hover,
+  .row-hover:focus-visible { margin-inline:4px; isolation:isolate; box-shadow:0 5px 0 var(--layer-neutral); }
+  .row-hover:focus-visible { outline:2px solid var(--red); outline-offset:4px; }
+  /* The one hover state the mobile guard was not cancelling. `transform` and
+     `box-shadow` are both overridden above, but the mouse hover's surface fill
+     was not — so on any device reporting `hover: hover` the row still faded to
+     `--surface` over .2s when tapped. Cancelled for `:hover` only: `:active`
+     is the press fill and must survive, and the ungated `:focus-visible`
+     surface is the keyboard indicator, which belongs on every device. */
+  .row-hover:hover { background:none; }
+  .row-hover:hover .row-arrow,
+  .row-hover:focus-visible .row-arrow { transform:none; }
+  .row-hover::before,
+  .row-hover:hover::before,
+  .row-hover:focus-visible::before,
+  .row-hover:active::before { transform:scaleY(1); }
+
+  /* The vertical accent moves to the right edge at this width: the card is
+     inset 4px and its depth sits underneath, so the right edge is the only
+     edge the red bar can terminate on without colliding with the depth.
+     `left:auto` cancels the base declaration. `transform-origin: bottom` is
+     untouched, so the bar still grows upward from the bottom — only the side
+     changes. Desktop keeps the bar on the left, running the full row.
+
+     `z-index` is the actual fix for the accent looking partial. The geometry
+     was already right; the bar was being *painted over*. `::before` is the
+     anchor's first child, so among siblings that are all positioned with
+     `z-index: auto` it paints first — and `.row-media` is `position: relative`
+     with an opaque `background` and a border, spanning the full width. On a
+     card with artwork the thumbnail therefore covered the bar across its whole
+     height and only the text area below showed through. Lifting the bar onto
+     a positive stacking level puts it above the content it belongs to;
+     `isolation` on the anchor keeps that level from reaching past the card.
+     `top` is the card's own block padding, so the line starts at the top edge
+     of the image rather than in the padding above it. The 0 fallback keeps a
+     future `.row-hover` that does not publish the variable behaving as before
+     instead of collapsing to zero height. */
+  .row-hover::before { left:auto; right:0; top:var(--card-pad-y, 0); bottom:0; z-index:1; }
+
+  .row-hover--accent,
+  .row-hover--accent:hover,
+  .row-hover--accent:focus-visible,
+  .row-hover--accent:active { box-shadow:4px 4px 0 var(--layer-neutral); }
+
+  /* Archive Index rows are cards at this width too, for the same reason:
+     without the gap each row's offset lands on the next row's hairline. The
+     gap is larger than the 5px depth for that reason - the depth has to
+     land in the gap, not on the next card. `padding-right` rises from the
+     4px set at 600px so the row's arrow column clears the 3px red bar now
+     that the bar is on this edge; at 4px the two reds would merge. */
+  .home-records { gap:20px; }
+  /* `.home-records` qualifies the selector on purpose: the 600px block below
+     sets `padding-right: 4px` for these rows and sits LATER in the sheet at
+     the same specificity, so a bare `.home-record` here silently lost and the
+     arrow column ended up 1px from the red bar instead of 5px. */
+  .home-records .home-record { border-top:0; padding-right:8px; }
+  /* The record's arrow sits ~5px further in. Applied to the arrow alone — the
+     column is `justify-self: end`, so a margin moves the glyph without
+     shifting the record's number or copy, and leaves it red, vertical and
+     interactive exactly as it was. */
+  .home-record-arrow { margin-right:5px; }
+}
 
 /* Bracket button: the site's shared boxed-label control, used by
    [ ALL PROJECTS ], [ ALL NOTES ], and the CV download. One definition so the
@@ -462,7 +657,7 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 .bracket-btn { display:inline-block; border:2px solid var(--line-25); padding:9px 14px; color:var(--text); font:700 var(--type-label) var(--font-ui); letter-spacing:2px; text-decoration:none; }
 
 .home-records { display:flex; flex-direction:column; }
-.home-record { position:relative; display:grid; grid-template-columns:75px minmax(0,1fr) 40px; align-items:center; min-height:88px; border-top:1px solid var(--line-16); padding:13px 14px 13px 0; }
+.home-record { --card-pad-y:13px; position:relative; display:grid; grid-template-columns:75px minmax(0,1fr) 40px; align-items:center; min-height:88px; border-top:1px solid var(--line-16); padding:var(--card-pad-y) 14px var(--card-pad-y) 0; }
 .home-record-number { color:var(--red); font:400 var(--type-numeral) var(--font-display); }.home-record-copy { display:flex; align-items:baseline; gap:20px; }.home-record-copy b { font-family:var(--font-display); font-size:clamp(26px,3vw,42px); line-height:.85; text-transform:uppercase; }.home-record-copy small { color:var(--text-muted); font-size:var(--type-small); }.home-record-arrow { justify-self:end; color:var(--red); font-size:25px; transition:transform .2s ease; }
 .home-record-1 { margin-left:18px; }.home-record-2 { margin-left:-7px; }.home-record-3 { margin-left:25px; }.home-record-4 { margin-left:8px; }
 
@@ -489,13 +684,88 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 .record h2 { margin:8px 0 15px; font-family:var(--font-display); font-size:var(--type-heading-lg); line-height:.83; text-transform:uppercase; }.record p { max-width:690px; margin:0; color:var(--text-muted); font-size:var(--type-body-sm); line-height:1.9; }.metadata { margin-top:21px!important; color:var(--text)!important; font:var(--type-label) var(--font-ui)!important; letter-spacing:.08em; text-transform:uppercase; }.record aside { align-self:end; border-left:2px solid var(--red); padding-left:16px; }.record aside span { color:var(--gray); font:var(--type-label) var(--font-ui); letter-spacing:.16em; }.record aside p { margin-top:10px; color:var(--text); font-size:var(--type-metadata); line-height:1.7; }
 .notes-list { position:relative; z-index:2; max-width:950px; border-top:1px solid var(--gray); }
 .note { display:block; border-bottom:1px solid var(--line-18); padding:0; }
-.note-link { display:grid; grid-template-columns:120px minmax(0,1fr) auto; gap:28px; align-items:center; padding:31px 0; transition:transform .2s ease, padding-left .2s ease, color .2s ease; }
+.note-link { display:grid; grid-template-columns:120px minmax(0,1fr) auto; gap:28px; align-items:center; padding:31px 0; transition:transform .2s ease, padding-left .2s ease, color .2s ease, box-shadow .2s ease; }
+/* `lift` sits on this link rather than on the wrapping article, so the
+   interaction and `:focus-visible` land on the element that is actually
+   clickable. `box-shadow` joins this transition list because a later
+   `.note-link` rule would otherwise drop `.lift`'s own. */
 .note-link:hover { padding-left:12px; }
 .note h2 { margin:9px 0 14px; font-family:var(--font-display); font-size:var(--type-heading-lg); line-height:.83; text-transform:uppercase; }
 .note p { max-width:650px; color:var(--text-muted); font-size:var(--type-body-sm); line-height:1.9; }
 .note-arrow { align-self:center; color:var(--red); font-size:26px; transition:transform .2s ease; }.note-date { color:var(--red); font:var(--type-metadata) var(--font-ui); }.note-date small { display:block; margin-top:11px; color:var(--gray); }.note-body { min-width:0; }
 .note-thumb { position:relative; width:160px; aspect-ratio:20/13; height:auto; margin-right:8px; overflow:hidden; border:2px solid var(--red); background:var(--surface); clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px)); box-shadow:4px 4px 0 var(--dark-red); flex:none; transform:rotate(1deg); }
 .note-thumb img { display:block; width:100%; height:100%; object-fit:cover; object-position:center; }
+
+/* ---- /notes cards at mobile width ----------------------------------------
+   Placed HERE, after the rules above, and that placement is load-bearing.
+   `.note-link:hover { padding-left: 12px }` is the note card's only hover
+   affordance, and it is a padding change rather than a transform — so every
+   `transform: none` guard reads as satisfied while the card still slides. An
+   earlier attempt parked the override in the narrow-viewport block up in the
+   shared-primitives section, where it sat *before* this rule at equal
+   specificity (0-2-0) and therefore lost. Override and hover treatment are now
+   both in one place, after the thing they override.
+
+   Ownership: `.lift` is on the `<a class="note-link">` in notes.astro, one per
+   note, so the accent and the depth are already per-card — nothing here
+   re-parents them. What made the list read as one continuous red line was
+   adjacency: the cards were flush, so each card's full-height bar and 5px
+   depth ran straight into its neighbour's. The gap and the dropped hairline
+   below are what separate them, and the gap matches the 20px rhythm the home
+   cards already use rather than being tuned to hide anything.
+
+   The accent mirrors `.row-hover::before` in the shared block: same 3px, same
+   `right: 0` / `left: auto`, same stacking level, no fixed height — it spans
+   whatever the link's own box is, so a note with a thumbnail gets a bar as tall
+   as the card, not as tall as the thumbnail. `top` falls back to 0 because a
+   note's padding is inside its visible card. */
+@media (max-width: 480px) {
+  /* Card-to-card separation: 20px so the 5px depth lands with 15px clear, the
+     same rhythm as Featured Work, Latest Notes and Now. */
+  .note { border-bottom:0; margin-bottom:20px; }
+
+  /* Geometry: static in every state, so nothing can move the card. */
+  .lift,
+  .lift:hover,
+  .lift:focus-visible,
+  .lift:active { transform:none; filter:none; margin-inline:4px; isolation:isolate; box-shadow:0 5px 0 var(--layer-neutral); border-color:var(--red); }
+  .lift:active { box-shadow:0 5px 0 var(--red); }
+  .lift::before { content:''; position:absolute; left:auto; right:0; top:var(--card-pad-y, 0); bottom:0; z-index:1; width:3px; background:var(--red); transform:scaleY(1); transform-origin:bottom; }
+
+  /* The slide itself. Declared after the base rule above, at equal
+     specificity, so it wins on source order. */
+  .note-link:hover { padding-left:0; }
+
+  /* ONE right-side safe inset, applied to the card's padding rather than to
+     each child, so the title, the description, the reading-time label and the
+     thumbnail all stop at the same invisible vertical boundary. The long-title
+     card only appeared to have one, because where a wrapped word happened to
+     land was standing in for a boundary that did not exist; the text was in
+     fact running flush to the accent. 16px from the card edge leaves 13px of
+     clear space to the bar's inner edge, matching that reference.
+
+     The inset lives on the container, not on the children: a grid container
+     lays its tracks out inside its content box, so every item — including the
+     full-width date row and the thumbnail column — is inset by it, and no
+     child needs its own magic number that could drift from the others.
+
+     `.notes-list` qualifies the selector on purpose: the 600px block below sets
+     `padding: 22px 0 24px` on `.note-link` as a shorthand and sits LATER in the
+     sheet, so an unqualified `padding-right` here would silently lose to its
+     `padding-right: 0`. The red bar is absolutely positioned and resolves
+     against the padding box, so it does not move. */
+  .notes-list .note-link { --note-safe-right:16px; padding-right:var(--note-safe-right); }
+
+  /* No thumbnail means no thumbnail column: the title and body take the full
+     card width rather than leaving a 112px empty track. `:not(:has())` reads
+     the thumbnail that actually rendered, so the two cannot disagree, and it
+     outranks the plain `.note-link` rule from the 600px block on specificity.
+     Not a truncation — the title is always emitted in full and wraps. */
+  .note-link:not(:has(.note-thumb)) { grid-template-columns:minmax(0,1fr); }
+  /* Insurance so a long unbroken word cannot run out under the accent. This
+     wraps; it does not clip, ellipsize or shorten the title. */
+  .note h2 { overflow-wrap:break-word; }
+}
 .page[data-page="NOTES"]::before { z-index:0; opacity:1; }
 .page[data-page="NOTES"] .brand-watermark { z-index:0; opacity:1; }
 .now-board { position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:55px; overflow:hidden; border:1px solid var(--line-22); background:var(--surface); padding:50px; box-shadow:14px 14px 0 var(--dark-red); }.now-board::before { content:'NOW'; position:absolute; right:-35px; bottom:-35px; color:var(--watermark-deep); font:400 220px/.7 var(--font-display); }.now-board > * { position:relative; z-index:1; }.now-board h2 { margin:30px 0; max-width:760px; font-size:var(--type-display-md); }.now-board h2 span { color:var(--red); }.now-board .body-copy { max-width:660px; color:var(--text-muted); font-size:var(--type-body); line-height:2; }.status-live { background:var(--red); color:var(--paper); padding:7px 10px; font:var(--type-label) var(--font-ui); letter-spacing:.12em; }.status-list { border-left:1px solid var(--gray); padding-left:23px; }.status-list div { margin-bottom:25px; }.status-list dt { color:var(--gray); font:var(--type-label) var(--font-ui); letter-spacing:.15em; }.status-list dd { margin:7px 0 0; color:var(--text); font:var(--type-metadata) var(--font-ui); line-height:1.7; }.now-split { display:grid; grid-template-columns:1fr 1fr; gap:50px; margin-top:75px; }.now-split > div { border-top:1px solid var(--gray); padding-top:20px; }.now-split p:not(.eyebrow) { color:var(--text-muted); font-size:var(--type-body-sm); line-height:1.9; }.now-split .big { color:var(--text); font:400 var(--type-numeral)/1 var(--font-display); text-transform:uppercase; }
@@ -586,13 +856,10 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 }
 
 /* Note article page (Medium/Substack-style reading view) */
-.note-header { position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; height:56px; padding:0 24px; background:var(--background); border-bottom:1px solid var(--line-12); }
-.note-header-back { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--line-22); color:var(--text); font-size:18px; line-height:1; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px)); transition:border-color .2s ease,color .2s ease,transform .2s ease; }
-.note-header-back:hover { border-color:var(--red); color:var(--red); transform:translateX(-2px) skewX(-1deg); }
-.note-header-title { font:700 var(--type-small) var(--font-ui); letter-spacing:.24em; color:var(--gray); }
-.note-header-spacer { width:36px; }
-.note-footer { display:flex; align-items:center; justify-content:space-between; max-width:1500px; margin:24px auto 0; padding:16px 24px; background:color-mix(in srgb,var(--background) 96%,transparent); border-top:1px solid var(--line-14); font:700 var(--type-label) var(--font-ui); letter-spacing:.14em; color:var(--gray); }
-.note-footer-mark { font:700 18px var(--font-ui); letter-spacing:.02em; text-transform:none; }.note-footer-mark strong { color:var(--red); }.note-footer span:last-child b { color:var(--red); }
+/* The note header/footer declarations live in the standalone block at the end
+   of this sheet, which is safe-area aware. An earlier, plainer copy of every
+   one of these selectors sat here and was fully overridden by it; removing it
+   leaves the rendering identical and stops the two copies drifting. */
 .note-page { padding-top: 48px; }
 .reading-progress { position: fixed; top: 0; left: 0; z-index: 80; width: 100%; height: 3px; background: var(--red); transform-origin: left; transform: scaleX(0); box-shadow: 0 0 10px rgba(217,35,35,.6); }
 .note-page::before, .note-page .brand-watermark { z-index: 0; opacity: 1; }
@@ -648,7 +915,11 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 /* Note article standalone header/footer — P5 clean + safe-area aware */
 .note-header { position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; height:calc(56px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 24px 0; padding-left:max(24px, env(safe-area-inset-left)); padding-right:max(24px, env(safe-area-inset-right)); background:var(--background); border-bottom:1px solid var(--line-12); }
 .note-header-back { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--line-22); color:var(--text); font-size:18px; line-height:1; clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px)); transition:border-color .2s ease, color .2s ease, transform .2s ease; }
-.note-header-back:hover { border-color:var(--red); color:var(--red); transform:translateX(-2px) skewX(-1deg); }
+/* Focus is static; the nudge is a pointer affordance only, so it cannot latch
+   on after a tap. The single copy of this rule lives here. */
+.note-header-back:focus-visible { border-color:var(--red); color:var(--red); outline:2px solid var(--red); outline-offset:3px; }
+@media (hover: hover) and (pointer: fine) { .note-header-back:hover { border-color:var(--red); color:var(--red); transform:translateX(-2px) skewX(-1deg); } }
+@media (hover: none), (pointer: coarse) { .note-header-back:hover { transform:none; }.note-header-back:active { transform:none; background:var(--surface); } }
 .note-header-title { font:700 var(--type-small) var(--font-ui); letter-spacing:.24em; color:var(--gray); }
 .note-header-spacer { width:36px; }
 .note-footer { display:flex; align-items:center; justify-content:space-between; max-width:1500px; margin:24px auto 0; padding:16px max(24px, env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background:color-mix(in srgb,var(--background) 96%,transparent); border-top:1px solid var(--line-14); font:700 var(--type-label) var(--font-ui); letter-spacing:.14em; color:var(--gray); }

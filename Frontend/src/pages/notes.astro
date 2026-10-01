@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import PageHead from '../components/PageHead.astro';
-import { fetchNotes } from '../lib/cms';
+import { fetchNotes, type Note } from '../lib/cms';
 import { fallbackNoteList } from '../lib/fallback';
 import { noteDateLabel, noteSlug, readLabel } from '../lib/notesPreview';
 
@@ -13,6 +13,21 @@ export const prerender = false;
 // hrefs for the same note.
 const liveNotes = await fetchNotes();
 const notes = liveNotes?.notes ?? fallbackNoteList();
+
+// The title is the primary content here; the artwork is an optional
+// enhancement. The note has no presentation field expressing that preference,
+// so it is derived from the only thing it is really about — how much room the
+// title needs at the mobile size. Past this length the display title wants the
+// full card width more than the note wants a thumbnail.
+//
+// This is a rendering decision, not a truncation: the title is always emitted
+// in full and simply wraps, and the thumbnail column collapses to match (see
+// `.note-link:not(:has(.note-thumb))`). One constant to tune, no new field on
+// the model and no new abstraction.
+const LONG_TITLE_CHARS = 36;
+
+const showThumbnail = (note: Note) =>
+  Boolean(note.image_url) && note.title.trim().length <= LONG_TITLE_CHARS;
 ---
 <Base title="NOTES" currentPath="/notes">
   <PageHead index="TRANSMISSIONS / 005" title="NOTES" intro="Short transmissions from the workbench. Mostly unfinished thoughts, left legible on purpose.">
@@ -20,19 +35,19 @@ const notes = liveNotes?.notes ?? fallbackNoteList();
       {notes.map((note) => {
         const slug = noteSlug(note);
         return (
-          <article class="note lift">
-            <a href={`/notes/${slug}`} class="note-link">
+          <article class="note">
+            <a href={`/notes/${slug}`} class="note-link lift">
               <span class="note-date">{noteDateLabel(note.created_at, note.published_at)}<small>{readLabel(note)}</small></span>
               <div class="note-body">
                 <p class="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
                 <h2>{note.title}</h2>
                 <p>{note.subtitle || note.body}</p>
               </div>
-              {note.image_url && (
-                <div class="note-thumb">
-                  <img src={note.image_url} alt="" loading="lazy" />
-                </div>
-              )}
+          {showThumbnail(note) && (
+            <div class="note-thumb">
+              <img src={note.image_url} alt="" loading="lazy" />
+            </div>
+          )}
             </a>
           </article>
         );
