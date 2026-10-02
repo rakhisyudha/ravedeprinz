@@ -2,6 +2,7 @@
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 import Menu from '../components/Menu.svelte';
+import PointerGlyph from '../components/PointerGlyph.svelte';
 import AnalyticsSnippet from '../components/AnalyticsSnippet.astro';
 import { fetchHome, fetchSite } from '../lib/cms';
 import { cached } from '../lib/requestCache';
@@ -113,6 +114,12 @@ const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigatio
   <body>
     <div class="site-background" aria-hidden="true"></div>
     {header && <Menu client:load currentPath={currentPath} navigation={menuNav} />}
+    {/* Custom pointer, mounted once here so every route shares one instance.
+        `client:load` rather than idle or visible: it has to be in place before
+        the first move or the native cursor flashes and is then hidden. The
+        component itself no-ops without a fine pointer, so this costs nothing on
+        touch. */}
+    <PointerGlyph client:load />
     {/* Plain-link navigation for script-blocking browsers (content blockers,
         no-JS WebViews): the Svelte menu trigger needs hydration, so without
         JavaScript the overlay menu is unreachable. This renders only when

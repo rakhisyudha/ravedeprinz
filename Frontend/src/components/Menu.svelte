@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { getTheme, toggleTheme, type Theme } from '../lib/theme';
 
   // Port of components/Shell.tsx (menu half). Interaction parity:
@@ -46,6 +47,40 @@
 
   $effect(() => {
     theme = getTheme();
+  });
+
+  /**
+   * Publishes `open` to <html> as `menu-open`.
+   *
+   * The open state is component-local, so anything outside this component -- the
+   * custom cursor in particular -- had no way to know the red fullscreen scene
+   * was up, and could only guess from viewport width or hover capability. Both
+   * are wrong: the menu opens at any size, and a mouse can open it just as well
+   * as a finger. One class on <html>, straight from the real state, is exact
+   * and costs nothing.
+   *
+   * The stylesheet keys the cursor's fill off it, which is why this stays pure
+   * state plumbing: no colours are chosen here, and the cursor component never
+   * learns that a menu exists.
+   */
+  $effect(() => {
+    document.documentElement.classList.toggle('menu-open', open);
+  });
+
+  /**
+   * Removed on destroy, not from the effect's cleanup. The cleanup would also
+   * run before every re-run, so the class would be removed and re-added on each
+   * toggle for no reason; onDestroy only fires when this island actually goes
+   * away, which is the case that would otherwise strand `menu-open` on <html>
+   * across a navigation.
+   *
+   * Unlike $effect, onDestroy DOES run during SSR, where there is no document
+   * to clean up. Guarded for the same reason lib/theme.ts guards its own
+   * accessors: without it, prerendering every route throws.
+   */
+  onDestroy(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.classList.remove('menu-open');
   });
 
   function handleThemeToggle() {

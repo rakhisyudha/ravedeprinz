@@ -34,6 +34,14 @@
   --line-30:rgba(255,255,255,.30);
   --line-35:rgba(255,255,255,.35);
   --red:var(--primary); --dark-red:var(--secondary);
+  /* Custom pointer colours, as tokens so the component never chooses a colour.
+     `--red` is darken()ed by an alpha pair on hover (see the pointer rules in
+     PointerGlyph.svelte); light mode cannot darken its own red toward black
+     without going muddy, so it flips to `--ink` instead, and `--ink` is the
+     near-black already used by `--layer-neutral`, so no new colour is invented.
+     `--cursor-core` stays `--paper` in both themes: the reticle needs to read
+     against the fill, and a dark-on-red or dark-on-black reticle would vanish. */
+  --cursor-fill:var(--red); --cursor-core:var(--paper);
   /* Second layer of the two-layer card offset. `--red` is the accent layer
      nearest the card; this is the solid block behind it, and it runs opposite
      to the theme so it is actually visible: near-white under the dark shell,
@@ -100,8 +108,22 @@ html[data-theme="light"] {
   --line-35:rgba(0,0,0,.25);
   /* Near-black, so the offset block reads against the light surface. */
   --layer-neutral:#1a1714;
-  --offset-soft:rgba(156,58,58,.48);
-}
+--offset-soft:rgba(156,58,58,.48);
+    /* See the pointer notes in :root. Light mode flips the fill to the site's
+       near-black rather than darkening its own red. */
+    --cursor-fill:var(--ink);
+  }
+
+  /* The fullscreen menu paints the whole viewport red, so the red pointer
+     disappears into it. Flipping to `--ink` restores contrast in either theme,
+     because the menu is red regardless of theme and `--ink` is theme-neutral.
+
+     This keys off the real `menu-open` state that Menu.svelte publishes from its
+     own `open` value -- not from viewport width or pointer type, both of which
+     would be wrong: the menu opens at any size and a mouse opens it too.
+     Deliberately not mix-blend-mode, which would also recolour the native cursor
+     and anything else passing underneath it. */
+  html.menu-open { --cursor-fill:var(--ink); }
 
 /* Light-theme backdrop and effect adjustments. The dark layer above remains
    the default so the first render and the existing dark visual treatment are
@@ -174,6 +196,75 @@ html[data-theme="light"] .about-photo-label {
 html { scroll-behavior:smooth; background:var(--background); }
 body { margin:0; overflow-x:hidden; background:var(--background); color:var(--text); font-family:var(--font-ui); font-weight:var(--weight-regular); }
 b,strong { font-weight:var(--weight-strong); }
+
+/* ---- themed scrollbar ----------------------------------------------------
+   The scrollbar restyled as a quiet utility in the site's own language: a
+   thin, square-cornered bar — no `border-radius`, because everything else on
+   this site is clipped corners and skewed rules, and a rounded pill reads as
+   borrowed OS chrome rather than as part of the design.
+
+   The track is the page surface, so it is effectively invisible; the thumb is
+   the accent muted toward that surface at rest and full strength under the
+   pointer. Kept visible and fully functional — restyled, never hidden.
+
+   Themed, not hardcoded: the light theme follows its own `--surface` rather
+   than reusing the dark values, which is the same pattern as `--line-*`.
+
+   Independent of `.reading-progress`. That is a 3px horizontal red rule pinned
+   to the top of note pages and is the prominent scroll indicator there; this
+   is a vertical thumb on the right edge. They are different elements on
+   different axes and meet only at the corner. */
+:root {
+  --scrollbar-track: var(--background);
+  --scrollbar-thumb: color-mix(in srgb, var(--red) 58%, var(--background));
+  --scrollbar-thumb-active: var(--red);
+  --scrollbar-size: 9px;
+}
+html[data-theme="light"] {
+  --scrollbar-track: var(--surface);
+  --scrollbar-thumb: color-mix(in srgb, var(--red) 55%, var(--surface));
+  --scrollbar-thumb-active: var(--red);
+}
+
+/* Standard properties: Firefox. Set on the root so it inherits everywhere. */
+html { scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track); scrollbar-width:thin; }
+
+/* WebKit / Blink. Same tokens, so both engines resolve to one palette. */
+::-webkit-scrollbar { width:var(--scrollbar-size); height:var(--scrollbar-size); }
+::-webkit-scrollbar-track { background:var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background:var(--scrollbar-thumb); border:0; border-radius:0; }
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active { background:var(--scrollbar-thumb-active); }
+::-webkit-scrollbar-corner { background:var(--scrollbar-track); }
+
+@media (max-width:600px) { :root { --scrollbar-size:7px; } }
+
+/* ---- custom cursor: hiding the native one --------------------------------
+   Progressive enhancement, and the order matters. `has-custom-cursor` is added
+   by components/Cursor.svelte only after it has confirmed a fine pointer AND
+   mounted its own element, so if the script fails, never loads, or the device
+   has no fine pointer, the system cursor is simply still there. The media
+   query is a second gate on the same condition.
+
+   Text entry is excluded and gets its native caret back: an invisible caret in
+   a field is a usability bug, not a flourish. */
+@media (pointer: fine) and (hover: hover) {
+  html.has-custom-cursor,
+  html.has-custom-cursor a,
+  html.has-custom-cursor button,
+  html.has-custom-cursor summary,
+  html.has-custom-cursor label,
+  html.has-custom-cursor [role='button'],
+  html.has-custom-cursor .row-hover,
+  html.has-custom-cursor .bracket-btn,
+  html.has-custom-cursor .scene-link,
+  html.has-custom-cursor .cut,
+  html.has-custom-cursor .cut-small { cursor:none; }
+  html.has-custom-cursor input,
+  html.has-custom-cursor textarea,
+  html.has-custom-cursor select,
+  html.has-custom-cursor [contenteditable] { cursor:auto; }
+}
 /* View-transition canvas stays on the brand black so route swaps can never
    expose browser-default white between the exit and enter snapshots. */
 ::view-transition,::view-transition-group(root),::view-transition-old(root),::view-transition-new(root) { background:var(--background); mix-blend-mode:normal; }
