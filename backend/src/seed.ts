@@ -136,8 +136,8 @@ async function main(): Promise<void> {
 
   for (const n of notes) {
     await sql`
-      insert into notes (slug, title, body, tag, author, published, published_at)
-      values (${slugify(n.title)}, ${n.title}, ${n.text}, ${n.tag}, 'Rakhis', true, ${n.published_at})
+      insert into notes (slug, title, body, tag, tags, author, published, published_at)
+      values (${slugify(n.title)}, ${n.title}, ${n.text}, ${n.tag}, ${sql.array([n.tag], 'TEXT')}, 'Rakhis', true, ${n.published_at})
     `;
   }
 

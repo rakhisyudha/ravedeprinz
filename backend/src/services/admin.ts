@@ -1,7 +1,9 @@
 import { sql } from '../db';
 import { ensureUniqueSlug, slugify } from '../utils/slug';
 import {
+  hasNoteTagsInput,
   validateCaseStudy,
+  validateNoteTags,
   validateSortOrder,
   type FieldError,
   type SiteSettingsValue,
@@ -309,17 +311,28 @@ export async function putAdminSiteSettings(value: SiteSettingsValue): Promise<Si
 // slug field on update payloads is ignored.)
 // ---------------------------------------------------------------------------
 
-const NOTE_EDITABLE = ['title', 'body', 'tag', 'author', 'subtitle', 'image_url', 'sort_order'] as const;
+// `tag` and `tags` are deliberately absent: they are written together, from
+// one validated list, so the legacy single-value column can never drift from
+// the list (see validateNoteTags and the migration 007 header).
+const NOTE_EDITABLE = ['title', 'body', 'author', 'subtitle', 'image_url', 'sort_order'] as const;
 
 export async function getAdminNotes(): Promise<{ notes: Row[] }> {
   const rows = await sql`select * from notes order by created_at desc`;
   return { notes: rows as Row[] };
 }
 
-export async function createNote(body: Row): Promise<Row> {
+export async function createNote(body: Row): Promise<Row | FieldError> {
   const title = String(body.title ?? '').trim();
   if (!title) {
     throw Object.assign(new Error('Title is required'), { status: 400 });
+  }
+  // No tag input at all keeps the historical default; anything supplied is
+  // validated before a single row is touched.
+  let tags = ['REFLECTION'];
+  if (hasNoteTagsInput(body)) {
+    const checked = validateNoteTags(body);
+    if (!checked.ok) return checked.error;
+    tags = checked.tags;
   }
   // The slug is generated server-side from the title at create time
   // only. Subsequent edits to the title can never change the slug
@@ -334,10 +347,10 @@ export async function createNote(body: Row): Promise<Row> {
 
   const published = (body.published as boolean | undefined) ?? false;
   const rows = (await sql`
-    insert into notes (title, slug, body, tag, author, subtitle, image_url, published, published_at)
+    insert into notes (title, slug, body, tag, tags, author, subtitle, image_url, published, published_at)
     values (
       ${title}, ${slug}, ${(body.body as string | undefined) ?? ''},
-      ${(body.tag as string | undefined) ?? 'REFLECTION'}, ${(body.author as string | null | undefined) ?? null},
+      ${tags[0]!}, ${sql.array(tags, 'TEXT')}, ${(body.author as string | null | undefined) ?? null},
       ${(body.subtitle as string | null | undefined) ?? null}, ${(body.image_url as string | null | undefined) ?? null},
       ${published}, ${published ? new Date().toISOString() : null}
     )
@@ -346,10 +359,21 @@ export async function createNote(body: Row): Promise<Row> {
   return rows[0]!;
 }
 
-export async function updateNote(id: string, body: Row): Promise<{ row: Row | null; published?: boolean }> {
+export async function updateNote(
+  id: string,
+  body: Row,
+): Promise<{ row: Row | null; published?: boolean } | FieldError> {
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of NOTE_EDITABLE) {
     if (key in body) update[key] = body[key];
+  }
+  // A body that carries no tag value leaves the stored tags alone; one that
+  // does is validated whole and rejected before anything is written.
+  if (hasNoteTagsInput(body)) {
+    const checked = validateNoteTags(body);
+    if (!checked.ok) return checked.error;
+    update.tag = checked.tags[0]!;
+    update.tags = sql.array(checked.tags, 'TEXT');
   }
   let published: boolean | undefined;
   if (typeof body.published === 'boolean') {

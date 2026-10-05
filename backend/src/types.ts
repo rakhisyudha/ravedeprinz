@@ -118,7 +118,10 @@ export type Note = {
   title: string;
   slug: string;
   body: string;
+  /** The first of `tags`, kept for clients that predate multi-tag notes. */
   tag: string;
+  /** 1 to 3 normalized tags, in the order they were entered. */
+  tags: string[];
   author: string | null;
   subtitle: string | null;
   image_url: string | null;

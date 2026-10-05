@@ -90,5 +90,31 @@
     { "label": "null", "value": null, "valid": false },
     { "label": "boolean", "value": true, "valid": false },
     { "label": "object", "value": {}, "valid": false }
+  ],
+  "noteTagsMin": 1,
+  "noteTagsMax": 3,
+  "noteTagMaxLength": 16,
+  "noteTags": [
+    { "label": "one tag, normalized", "body": { "tags": ["reflection"] }, "valid": true, "tags": ["REFLECTION"] },
+    { "label": "three tags keep their order", "body": { "tags": ["memoir", "Log", "reflection"] }, "valid": true, "tags": ["MEMOIR", "LOG", "REFLECTION"] },
+    { "label": "inner whitespace collapses and ends trim", "body": { "tags": ["  dev   log "] }, "valid": true, "tags": ["DEV LOG"] },
+    { "label": "blank entries are dropped", "body": { "tags": ["a", "", "   ", "b"] }, "valid": true, "tags": ["A", "B"] },
+    { "label": "repeats collapse to the first spelling", "body": { "tags": ["log", "LOG", " Log "] }, "valid": true, "tags": ["LOG"] },
+    { "label": "four tags where repeats bring it down to three", "body": { "tags": ["a", "b", "A", "c"] }, "valid": true, "tags": ["A", "B", "C"] },
+    { "label": "exactly sixteen characters", "body": { "tags": ["abcdefghijklmnop"] }, "valid": true, "tags": ["ABCDEFGHIJKLMNOP"] },
+    { "label": "legacy single tag", "body": { "tag": "reflection" }, "valid": true, "tags": ["REFLECTION"] },
+    { "label": "tags win over the legacy tag", "body": { "tags": ["a"], "tag": "zzz" }, "valid": true, "tags": ["A"] },
+    { "label": "four distinct tags", "body": { "tags": ["a", "b", "c", "d"] }, "valid": false, "field": "tags" },
+    { "label": "an empty list", "body": { "tags": [] }, "valid": false, "field": "tags" },
+    { "label": "only blank entries", "body": { "tags": ["", "  "] }, "valid": false, "field": "tags" },
+    { "label": "seventeen characters", "body": { "tags": ["abcdefghijklmnopq"] }, "valid": false, "field": "tags" },
+    { "label": "a comma inside a tag", "body": { "tags": ["a,b"] }, "valid": false, "field": "tags" },
+    { "label": "a control character inside a tag", "body": { "tags": ["a\u0007b"] }, "valid": false, "field": "tags" },
+    { "label": "legacy tag with a comma", "body": { "tag": "a,b" }, "valid": false, "field": "tags" },
+    { "label": "legacy tag that is blank", "body": { "tag": "   " }, "valid": false, "field": "tags" },
+    { "label": "tags that is not a list", "body": { "tags": "a" }, "valid": false, "field": "tags" },
+    { "label": "null tags", "body": { "tags": null }, "valid": false, "field": "tags" },
+    { "label": "an entry that is not text", "body": { "tags": [1] }, "valid": false, "field": "tags" },
+    { "label": "an object entry", "body": { "tags": [{}] }, "valid": false, "field": "tags" }
   ]
 }
