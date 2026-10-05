@@ -1,0 +1,70 @@
+---
+// Tag chips for the notes list. Plain links, so filtering works without JS.
+// They point at the page you are already on, so Base.astro skips the page
+// wipe for them (same-path navigations swap in place).
+//
+// Chips toggle: each link leads to the current selection with that tag added
+// or removed, and ALL clears it. A note has to carry every selected tag, so an
+// unselected chip whose addition would leave nothing (or would exceed the
+// selection limit) is rendered as a disabled label instead of a link, which
+// means no click can ever land on an empty list.
+//
+// A filter with a single tag has nothing to choose between, so the row is left
+// out until there are at least two.
+import type { TagChip } from '../lib/noteTags';
+
+interface Props {
+  chips: TagChip[];
+  /** Number of selected tags. Zero means the unfiltered list. */
+  selectedCount: number;
+  /** Number of notes in the unfiltered list, shown on the ALL chip. */
+  total: number;
+}
+
+const { chips, selectedCount, total } = Astro.props;
+---
+{chips.length >= 2 && (
+  <nav class="note-tags" aria-label="Filter notes by tag">
+    <ul>
+      <li>
+        <a
+          class="note-tag-chip bracket-btn row-hover--accent"
+          href="/notes"
+          aria-current={selectedCount === 0 ? 'page' : undefined}
+        >
+          <span aria-hidden="true">[ </span>ALL · {total}<span aria-hidden="true"> ]</span>
+        </a>
+      </li>
+      {chips.map((chip) => (
+        <li>
+          {chip.disabled ? (
+            <span class="note-tag-chip bracket-btn is-disabled" aria-disabled="true">
+              <span aria-hidden="true">[ </span>{chip.tag} · {chip.count}<span aria-hidden="true"> ]</span>
+            </span>
+          ) : (
+            <a
+              class="note-tag-chip bracket-btn row-hover--accent"
+              href={chip.href}
+              aria-current={chip.selected ? 'true' : undefined}
+            >
+              <span aria-hidden="true">[ </span>{chip.tag} · {chip.count}<span aria-hidden="true"> ]</span>
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
+
+<style>
+  .note-tags { position:relative; z-index:2; max-width:950px; margin:0 0 28px; }
+  .note-tags ul { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:10px; }
+  .note-tag-chip[aria-current] { border-color:var(--red); color:var(--red); }
+  /* A chip that cannot be used is still shown, so the count and the tag stay
+     visible, but it reads as unavailable and takes no pointer treatment. */
+  .note-tag-chip.is-disabled { opacity:.4; cursor:not-allowed; }
+
+  @media (max-width: 480px) {
+    .note-tags { margin-bottom:22px; }
+  }
+</style>

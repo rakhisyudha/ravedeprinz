@@ -5,6 +5,8 @@
 // column so every row's text starts at the same x, then the copy, then the
 // arrow. Only the data fed in differs.
 
+import NoteTags from '../NoteTags.astro';
+
 interface Props {
   href: string;
   /** Artwork, or null for the hatched placeholder. */
@@ -15,8 +17,10 @@ interface Props {
   /** Year for a project, date label for a note, "since" stamp for the now line. */
   date: string;
   title: string;
-  /** Status or tag. Omitted where a badge would be noise. */
+  /** Status (a project). Omitted where a badge would be noise. */
   badge?: string;
+  /** A note's tags, up to three, shown in the badge slot as one wrapping line. */
+  tags?: string[];
   /** Standfirst under the title, above the description. Omitted where the entry has none. */
   subtitle?: string | null;
   description?: string;
@@ -34,6 +38,7 @@ const {
   date,
   title,
   badge = '',
+  tags = [],
   subtitle = '',
   description = '',
   ariaLabel,
@@ -57,6 +62,7 @@ const {
       <span class="row-head">
         <b class="row-title">{title}</b>
         {badge && <span class="row-badge">{badge}</span>}
+        {tags.length > 0 && <span class="row-badge"><NoteTags tags={tags} /></span>}
       </span>
       <span class="row-body">
         {subtitle && (

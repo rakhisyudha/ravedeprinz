@@ -17,6 +17,10 @@ export const SORT_ORDER_MIN = 0;
 export const SORT_ORDER_MAX = 9999;
 export const ORDER_RANGE_LABEL = `${SORT_ORDER_MIN}–${SORT_ORDER_MAX}`;
 
+export const NOTE_TAGS_MIN = 1;
+export const NOTE_TAGS_MAX = 3;
+export const NOTE_TAG_MAX_LENGTH = 16;
+
 export type FieldError = { field: string; message: string };
 
 const trimmed = (value: string | null | undefined): string => (value ?? '').trim();
@@ -46,10 +50,69 @@ const LABELS: Record<string, string> = {
   availability_note: 'Note',
   cv_url: 'CV',
   slug: 'Slug',
+  tags: 'Tags',
 };
 
 export function labelFor(field: string): string {
   return LABELS[field] ?? field;
+}
+
+/** The one spelling of a tag: inner whitespace collapsed, trimmed, uppercased. Idempotent. */
+export function normalizeNoteTag(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
+/**
+ * The tags in a comma-separated text field: split on commas, each tag
+ * normalized, blanks dropped and repeats collapsed to the first spelling. This
+ * is where commas become separators, which is why a tag itself cannot hold one.
+ */
+export function parseTagsText(text: string): string[] {
+  const tags: string[] = [];
+  for (const part of text.split(',')) {
+    const tag = normalizeNoteTag(part);
+    if (tag !== '' && !tags.includes(tag)) tags.push(tag);
+  }
+  return tags;
+}
+
+export type NoteTagsResult = { ok: true; tags: string[] } | { ok: false; error: FieldError };
+
+function tagsError(message: string): NoteTagsResult {
+  return { ok: false, error: { field: 'tags', message } };
+}
+
+/**
+ * Mirror of validateNoteTags in Backend/src/services/validation.ts, taking the
+ * same request-body shape (`tags`, or the legacy single `tag`). The two run the
+ * same shared edge-case table, so what the form accepts the API accepts.
+ */
+export function validateNoteTagsInput(body: { tags?: unknown; tag?: unknown }): NoteTagsResult {
+  const source = body.tags !== undefined ? body.tags : [body.tag];
+  if (!Array.isArray(source)) return tagsError('Tags must be a list');
+
+  const tags: string[] = [];
+  for (const entry of source) {
+    if (entry !== null && entry !== undefined && typeof entry !== 'string') {
+      return tagsError('Each tag must be text');
+    }
+    const tag = normalizeNoteTag(typeof entry === 'string' ? entry : '');
+    if (tag !== '' && !tags.includes(tag)) tags.push(tag);
+  }
+
+  if (tags.length < NOTE_TAGS_MIN) return tagsError('A note needs at least one tag');
+  if (tags.length > NOTE_TAGS_MAX) return tagsError(`A note can have at most ${NOTE_TAGS_MAX} tags`);
+
+  for (const tag of tags) {
+    if (tag.length > NOTE_TAG_MAX_LENGTH) {
+      return tagsError(`"${tag}" is too long (max ${NOTE_TAG_MAX_LENGTH} characters per tag)`);
+    }
+    if (/[,\u0000-\u001F\u007F]/.test(tag)) {
+      return tagsError(`"${tag}" cannot contain commas or control characters`);
+    }
+  }
+
+  return { ok: true, tags };
 }
 
 /** A whole number in [0, 9999], entered as text in a number input. */

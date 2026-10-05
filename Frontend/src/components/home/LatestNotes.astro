@@ -24,10 +24,10 @@ const { entries } = Astro.props;
         mediaAlt={`${entry.title} preview`}
         date={entry.dateLabel}
         title={entry.title}
-        badge={entry.tag}
+        tags={entry.tags}
         subtitle={entry.subtitle}
         description={entry.readLabel}
-        ariaLabel={`${entry.title}, ${entry.tag}, ${entry.readLabel}`}
+        ariaLabel={[entry.title, ...entry.tags, entry.readLabel].join(', ')}
       />
     ))}
   </ul>

@@ -50,6 +50,7 @@ export function normalizeNote(raw: (typeof rawNotes)[number]): Note {
     slug: slugify(raw.title),
     body: raw.text,
     tag: raw.tag,
+    tags: [raw.tag],
     author: 'Rakhis',
     subtitle: null,
     image_url: null,

@@ -984,7 +984,7 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 .note-article-body strong { color: var(--text); }
 .note-article-body em { color: var(--text); }
 .note-inline-image { display: block; max-width: 100%; height: auto; margin: 26px 0; border: 2px solid var(--red); box-shadow: 6px 6px 0 var(--dark-red); }
-.note-article-footer { display: flex; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line-16); }
+.note-article-footer { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line-16); }
 .note-preview { display:grid; grid-template-columns:140px 1fr; gap:0; margin-top:32px; background:var(--surface); border:2px solid var(--red); box-shadow:8px 8px 0 var(--dark-red); overflow:hidden; }
 .note-preview-image { position:relative; height:120px; background:var(--background); border-right:2px solid var(--red); overflow:hidden; }
 .note-preview-placeholder { display:grid; place-items:center; height:100%; color:var(--red); font:400 64px/.7 var(--font-display); background:radial-gradient(#fff .5px, transparent .5px); background-size:7px 7px; }

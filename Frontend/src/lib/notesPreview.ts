@@ -35,14 +35,14 @@ function time(value?: string | null): number {
 }
 
 /**
- * The most recent published notes, re-sorted here rather than trusted from
- * the server: published_at descending, ties broken by created_at
- * descending, and an unparseable or missing date counts as oldest. The
- * server's ordering and the strip's ordering therefore cannot disagree.
+ * Newest first: published_at descending, ties broken by created_at
+ * descending, and an unparseable or missing date counts as oldest. Stable,
+ * so notes with no usable dates (the static fallback) keep array order.
+ * Shared by the home strip, the previous/next links, and the RSS feed, so
+ * none of them can disagree about which note is newer.
  */
-export function selectLatestNotes(notes: Note[], limit = 3): Note[] {
+export function sortNewestFirst(notes: Note[]): Note[] {
   return notes
-    .filter((note) => note.published !== false)
     .map((note, index) => ({ note, index }))
     .sort((a, b) => {
       const published = time(b.note.published_at) - time(a.note.published_at);
@@ -51,6 +51,14 @@ export function selectLatestNotes(notes: Note[], limit = 3): Note[] {
       if (created !== 0) return created;
       return a.index - b.index; // stable
     })
-    .slice(0, limit)
     .map((entry) => entry.note);
+}
+
+/**
+ * The most recent published notes, re-sorted here rather than trusted from
+ * the server. The server's ordering and the strip's ordering therefore
+ * cannot disagree.
+ */
+export function selectLatestNotes(notes: Note[], limit = 3): Note[] {
+  return sortNewestFirst(notes.filter((note) => note.published !== false)).slice(0, limit);
 }

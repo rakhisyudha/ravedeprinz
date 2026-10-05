@@ -1046,7 +1046,9 @@ describe('latest notes strip', () => {
   test('each row feeds the shared template date, tag, reading time, and image', () => {
     expect(notesAstro).toContain('date={entry.dateLabel}');
     expect(notesAstro).toContain('title={entry.title}');
-    expect(notesAstro).toContain('badge={entry.tag}');
+    // Up to three tags, passed as a list; the template lays them out.
+    expect(notesAstro).toContain('tags={entry.tags}');
+    expect(notesAstro).not.toContain('badge=');
     expect(notesAstro).toContain('description={entry.readLabel}');
     // Notes now carry artwork through the same media cell as projects.
     expect(notesAstro).toContain('media={entry.image}');
@@ -1058,7 +1060,7 @@ describe('latest notes strip', () => {
     // and the reading time.
     expect(notesAstro).toContain('subtitle={entry.subtitle}');
     const subtitle = notesAstro.indexOf('subtitle={entry.subtitle}');
-    expect(subtitle).toBeGreaterThan(notesAstro.indexOf('badge={entry.tag}'));
+    expect(subtitle).toBeGreaterThan(notesAstro.indexOf('tags={entry.tags}'));
     expect(subtitle).toBeLessThan(notesAstro.indexOf('description={entry.readLabel}'));
     // Featured Work passes no subtitle: its description already fills that
     // slot, so the two strips must not both grow a standfirst.

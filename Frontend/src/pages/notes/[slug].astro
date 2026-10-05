@@ -3,8 +3,14 @@ import Base from '../../layouts/Base.astro';
 import NoteBody from '../../components/NoteBody.astro';
 import ReadingProgress from '../../components/ReadingProgress.svelte';
 import ShareBar from '../../components/ShareBar.svelte';
-import { getNoteByIdResult } from '../../lib/cms';
-import { findFallbackNote } from '../../lib/fallback';
+import NoteAdjacent from '../../components/NoteAdjacent.astro';
+import NoteTags from '../../components/NoteTags.astro';
+import { fetchNotes, getNoteByIdResult, type Note } from '../../lib/cms';
+import { fallbackNoteList, findFallbackNote } from '../../lib/fallback';
+import { adjacentNotes } from '../../lib/noteNav';
+import { noteSlug } from '../../lib/notesPreview';
+import { noteTagList, primaryTag, tagHref } from '../../lib/noteTags';
+import { cached } from '../../lib/requestCache';
 import { readingMinutes } from '../../lib/readingTime';
 import {
   absolutizeUpload,
@@ -23,17 +29,32 @@ const { slug } = Astro.params;
 // home strip links to still resolves while the CMS is down. A note the CMS
 // answered for is always preferred; the fallback lookup only runs when the
 // CMS never answered.
-const noteResult = slug ? await getNoteByIdResult(slug) : ({ status: 'not-found' } as const);
+//
+// The note list is fetched alongside the note (through the request cache) so
+// the newer/older links cost no extra wait beyond the one timeout window.
+const [noteResult, notesList] = await Promise.all([
+  slug ? getNoteByIdResult(slug) : Promise.resolve({ status: 'not-found' } as const),
+  cached(Astro.locals, 'notes', fetchNotes),
+]);
+const fromFallback = noteResult.status === 'unavailable' && Boolean(slug);
 const note =
   noteResult.status === 'ok' && noteResult.data?.title
     ? noteResult.data
-    : noteResult.status === 'unavailable' && slug
+    : fromFallback && slug
       ? findFallbackNote(slug)
       : null;
 
 if (!note) {
   Astro.response.status = 404;
 }
+
+// Neighbours come from the same source as the note itself: the live list for
+// a live note, the fallback list for a fallback note. If only the list fetch
+// failed, the nav is left out rather than mixing live and static content.
+const neighbourSource: Note[] | null = !note ? null : fromFallback ? fallbackNoteList() : (notesList?.notes ?? null);
+const neighbours = note && slug && neighbourSource ? adjacentNotes(neighbourSource, slug) : { newer: null, older: null };
+const tags = note ? noteTagList(note) : [];
+const toEntry = (n: Note | null) => (n ? { href: `/notes/${noteSlug(n)}`, title: n.title } : null);
 
 const siteUrl = getSiteUrl();
 const url = note ? getNoteCanonicalUrl(note, slug ?? '') : `${siteUrl}/notes`;
@@ -59,7 +80,8 @@ const noteShareData: NoteShareData | null = note
   ? {
       title: note.title,
       excerpt: cleanDescription(note.body, note.subtitle, 220),
-      category: note.tag,
+      // The share story has room for one label, so it takes the first tag.
+      category: primaryTag(note),
       coverImage: absoluteImage ?? undefined,
       readingTime: minutes > 0 ? `${String(minutes).padStart(2, '0')} MIN` : null,
       createdAt: storyCreatedDate || undefined,
@@ -99,7 +121,7 @@ const jsonLd = note
           <meta property="article:modified_time" content={(note.updated_at ?? note.published_at) as string} />
         )}
         <meta property="article:author" content={author} />
-        {note.tag && <meta property="article:tag" content={note.tag} />}
+        {tags.map((tag) => <meta property="article:tag" content={tag} />)}
         {ogImage && (
           <>
             <meta property="og:image" content={ogImage} />
@@ -144,7 +166,7 @@ const jsonLd = note
 
         <div class="note-article">
           <header class="note-article-head">
-            <p class="eyebrow">{note.tag}</p>
+            <p class="eyebrow"><NoteTags tags={tags} /></p>
             <h1 class="display">{note.title}</h1>
             {note.subtitle && <p class="note-article-subtitle">{note.subtitle}</p>}
             <div class="note-article-meta">
@@ -178,7 +200,8 @@ const jsonLd = note
               )}
             </div>
             <div class="note-preview-body">
-              <p class="eyebrow">{note.tag}{note.author ? ` · ${note.author}` : ''}</p>
+              <p class="eyebrow"><NoteTags tags={tags} /></p>
+              {note.author && <p class="eyebrow">{note.author}</p>}
               <p class="note-preview-title">{note.title}</p>
               <p class="note-preview-desc">{cleanDescription(note.body, note.subtitle, 120)}</p>
               <span class="note-preview-url">ravedeprinz.me{new URL(url).pathname}</span>
@@ -190,8 +213,13 @@ const jsonLd = note
           <ShareBar client:load url={url} title={note.title} description={description} noteData={noteShareData} />
 
           <div class="note-article-footer">
-            <span class="note-pill"># {note.tag}</span>
+            {/* One pill per tag, each leading to that tag's filtered list. */}
+            {tags.map((tag) => (
+              <a class="note-pill" href={tagHref(tag)} aria-label={`More notes tagged ${tag}`}># {tag}</a>
+            ))}
           </div>
+
+          <NoteAdjacent newer={toEntry(neighbours.newer)} older={toEntry(neighbours.older)} />
           <style>
             /* Plain-<img> fill equivalence inside the fixed preview frame. */
             .note-preview-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

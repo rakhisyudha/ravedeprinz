@@ -202,3 +202,59 @@ describe('admin contact settings', () => {
     expect(save).not.toContain('form = { ...DEFAULTS }');
   });
 });
+
+describe('admin notes tags', () => {
+  const notes = read('../../src/components/admin/AdminNotes.svelte');
+  const tagsField = read('../../src/components/admin/AdminTagsField.svelte');
+
+  test('both note forms use the tags field, and the single TAG input is gone', () => {
+    expect(notes.match(/<AdminTagsField/g)?.length).toBe(2);
+    expect(notes).not.toContain('label="TAG"');
+    expect(notes).toContain('suggestions={knownTags}');
+  });
+
+  test('the rules run before the request, and a bad list keeps what was typed', () => {
+    const saveRow = notes.slice(notes.indexOf('async function saveRow'));
+    const validateAt = saveRow.indexOf('validateNoteTagsInput(');
+    const requestAt = saveRow.indexOf('await adminApi');
+    expect(validateAt).toBeGreaterThan(-1);
+    expect(requestAt).toBeGreaterThan(validateAt);
+    // It returns before saving, and never reloads the list on that path.
+    expect(saveRow.slice(validateAt, requestAt)).toContain('return;');
+  });
+
+  test('only the list is sent; the stale single tag is left out', () => {
+    expect(notes).toContain('const { tag: _legacyTag, ...rest } = row;');
+    expect(notes).toContain('tags: checked.tags');
+  });
+
+  test('a list the form has set is taken as it is, so clearing the field sticks', () => {
+    const tagsOf = notes.slice(notes.indexOf('function tagsOf'), notes.indexOf('// Every tag already in use'));
+    expect(tagsOf.indexOf('Array.isArray(row.tags)')).toBeLessThan(tagsOf.indexOf('legacy'));
+    expect(tagsOf).toContain('return row.tags.filter(');
+  });
+
+  test('a new draft starts on the historical default', () => {
+    expect(notes).toContain("value={tagsOf(draft, ['REFLECTION'])}");
+  });
+
+  test('the field keeps its raw text, re-syncs only when the parent replaces the list', () => {
+    expect(tagsField).toContain('let text = $state(untrack(() => value.join(\', \')));');
+    expect(tagsField).toContain('!sameList(parseTagsText(untrack(() => text)), incoming)');
+    expect(tagsField).toContain('onChange(parseTagsText(text));');
+  });
+
+  test('it shows a live n/3 counter and the live error, with the server message taking precedence', () => {
+    expect(tagsField).toContain('{parsed.length}/{NOTE_TAGS_MAX}');
+    expect(tagsField).toContain('const shownError = $derived(error || liveError);');
+    expect(tagsField).toContain('role="alert"');
+    expect(tagsField).toContain("aria-invalid={shownError ? 'true' : undefined}");
+  });
+
+  test('existing tags are offered as buttons that stop at the limit and skip tags already present', () => {
+    expect(tagsField).toContain('suggestions.filter((tag) => !parsed.includes(tag))');
+    expect(tagsField).toContain('const full = $derived(parsed.length >= NOTE_TAGS_MAX);');
+    expect(tagsField).toContain('disabled={full}');
+    expect(tagsField).toContain('type="button"');
+  });
+});

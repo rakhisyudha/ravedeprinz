@@ -1,0 +1,43 @@
+---
+// A note's tags as one typographic line: TAG / TAG / TAG.
+//
+// It wraps ONLY between tags. Each tag (with the slash that follows it) is an
+// unbreakable unit, so a two-word tag like DEV LOG never splits across lines
+// and a line never starts with a slash. Together with the 16-character limit
+// per tag, one tag always fits the narrowest phone, so the worst case is a
+// second line, never a broken tag.
+//
+// The text inherits size, colour and letter-spacing from where it is placed,
+// so the same component serves a card's eyebrow and a row's red badge. Tags
+// here are plain text: cards are themselves links, and a link cannot sit
+// inside a link. The clickable tags are the note page's pills and the filter.
+interface Props {
+  tags: string[];
+}
+
+const { tags } = Astro.props;
+---
+{tags.length > 0 && (
+  <span class="tags-line">
+    {tags.map((tag, index) => (
+      <span class="tags-item">
+        <span class="tags-name">{tag}</span>
+        {index < tags.length - 1 && (
+          <>
+            {/* The slash is decoration. A hidden comma keeps a screen reader
+                from running the tags together into one word. */}
+            <span class="tags-sep" aria-hidden="true">/</span>
+            <span class="tags-sr">, </span>
+          </>
+        )}
+      </span>
+    ))}
+  </span>
+)}
+
+<style>
+  .tags-line { display:flex; flex-wrap:wrap; column-gap:.6em; row-gap:.1em; min-width:0; }
+  .tags-item { white-space:nowrap; }
+  .tags-sep { margin-left:.6em; opacity:.6; }
+  .tags-sr { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+</style>

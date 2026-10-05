@@ -1,0 +1,48 @@
+---
+// Newer / older links at the foot of a note. Pure presentation: the pages
+// decide what the neighbours are (lib/noteNav.ts) and pass them in. A missing
+// side simply does not render, and with neither side there is no nav at all.
+export interface AdjacentEntry {
+  href: string;
+  title: string;
+}
+
+interface Props {
+  newer: AdjacentEntry | null;
+  older: AdjacentEntry | null;
+}
+
+const { newer, older } = Astro.props;
+---
+{(newer || older) && (
+  <nav class="note-adjacent" aria-label="More notes">
+    {newer && (
+      <a class="note-adjacent-link note-adjacent-newer bracket-btn row-hover--accent" href={newer.href} rel="prev">
+        <span class="note-adjacent-dir">← NEWER</span>
+        <span class="note-adjacent-title">{newer.title}</span>
+      </a>
+    )}
+    {older && (
+      <a class="note-adjacent-link note-adjacent-older bracket-btn row-hover--accent" href={older.href} rel="next">
+        <span class="note-adjacent-dir">OLDER →</span>
+        <span class="note-adjacent-title">{older.title}</span>
+      </a>
+    )}
+  </nav>
+)}
+
+<style>
+  .note-adjacent { position:relative; z-index:1; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; margin-top:24px; }
+  /* Each link keeps its own column, so a lone "older" link stays on the right
+     instead of jumping to the left when there is no newer note. */
+  .note-adjacent-newer { grid-column:1; }
+  .note-adjacent-older { grid-column:2; text-align:right; }
+  .note-adjacent-link { min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .note-adjacent-dir { color:var(--text-faint); }
+  .note-adjacent-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; letter-spacing:.04em; }
+
+  @media (max-width: 480px) {
+    .note-adjacent { grid-template-columns:minmax(0, 1fr); }
+    .note-adjacent-newer, .note-adjacent-older { grid-column:1; text-align:left; }
+  }
+</style>

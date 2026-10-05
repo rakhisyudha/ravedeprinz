@@ -85,3 +85,23 @@ describe('Property 16: note card model is unchanged by the refactor', () => {
     );
   });
 });
+
+describe('a note with several tags', () => {
+  test('the card eyebrow is the first tag only', () => {
+    const note: Note = { title: 'T', slug: 't', body: 'b', tag: 'memoir', tags: ['memoir', 'log', 'reflection'] };
+    expect(buildNoteCardModel(note).eyebrow).toBe('MEMOIR');
+  });
+
+  test('a note without a usable list keeps the single-tag eyebrow, exactly as before', () => {
+    for (const tags of [undefined, null, [], ['', '  ']] as const) {
+      const note: Note = { title: 'T', slug: 't', body: 'b', tag: 'log', tags: tags as never };
+      expect(buildNoteCardModel(note)).toEqual(buildNoteCardReference({ ...note, tags: undefined }));
+    }
+  });
+
+  test('nothing but the eyebrow changes', () => {
+    const base: Note = { title: 'T', slug: 't', body: 'b', tag: 'LOG' };
+    const multi: Note = { ...base, tags: ['LOG', 'A', 'B'] };
+    expect({ ...buildNoteCardModel(multi), eyebrow: '' }).toEqual({ ...buildNoteCardModel(base), eyebrow: '' });
+  });
+});

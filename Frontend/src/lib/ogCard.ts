@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { getNoteById, type Note } from './cms';
 import { absolutizeUpload, cleanDescription } from './seo';
+import { primaryTag } from './noteTags';
 
 // Shared 1200x630 social card renderer (server-only: satori + resvg + sharp
 // never reach the browser). One satori tree and one set of geometry, colour,
@@ -306,9 +307,17 @@ async function renderCardPng(model: CardModel): Promise<Buffer> {
 // --- Note card -------------------------------------------------------------
 
 /** The pre-refactor note card model, unchanged. */
+// The eyebrow is small and the card is read at thumbnail size, so a note with
+// several tags shows only its first. A note that carries no usable list keeps
+// exactly the single-tag behaviour the card always had.
+function noteEyebrow(note: Note | null): string {
+  const first = note && Array.isArray(note.tags) ? primaryTag(note) : '';
+  return first !== '' ? first : (note?.tag ?? 'NOTES').toUpperCase();
+}
+
 export function buildNoteCardModel(note: Note | null): CardModel {
   return {
-    eyebrow: (note?.tag ?? 'NOTES').toUpperCase(),
+    eyebrow: noteEyebrow(note),
     title: (note?.title ?? 'ravedeprinz').slice(0, 80),
     excerpt: cleanDescription(note?.body, note?.subtitle, 160) || 'Short transmissions from the workbench.',
     footer: CARD_FOOTER,

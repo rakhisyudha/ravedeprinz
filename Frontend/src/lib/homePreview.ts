@@ -9,12 +9,14 @@ import { fetchNow, fetchNotes, fetchProjects, fetchSite, type Note, type NowCurr
 import { fallbackNoteList, fallbackProjectList, fallbackSite } from './fallback';
 import { selectFeaturedProjects, toFeaturedEntry, type FeaturedEntry } from './projects';
 import { noteDateLabel, noteSlug, readLabel, selectLatestNotes } from './notesPreview';
+import { noteTagList } from './noteTags';
 import { buildContactView, type ContactView } from './availability';
 import { buildNowStatus, type NowStatusView } from './nowStatus';
 
 export type NoteEntry = {
   title: string;
-  tag: string;
+  /** The note's tags in display order; one to three for a well-formed note. */
+  tags: string[];
   dateLabel: string;
   readLabel: string;
   href: string;
@@ -44,7 +46,7 @@ function toNoteEntry(note: Note): NoteEntry {
   const subtitle = note.subtitle?.trim() ?? '';
   return {
     title: note.title,
-    tag: note.tag,
+    tags: noteTagList(note),
     dateLabel: noteDateLabel(note.created_at, note.published_at),
     readLabel: readLabel(note),
     href: `/notes/${noteSlug(note)}`,

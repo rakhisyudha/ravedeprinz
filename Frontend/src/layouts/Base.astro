@@ -6,6 +6,7 @@ import PointerGlyph from '../components/PointerGlyph.svelte';
 import AnalyticsSnippet from '../components/AnalyticsSnippet.astro';
 import { fetchHome, fetchSite } from '../lib/cms';
 import { cached } from '../lib/requestCache';
+import { getSiteUrl } from '../lib/seo';
 import { navigation as fallbackNav, siteSettings as fallbackSite } from '../data/site';
 
 interface Props {
@@ -92,6 +93,22 @@ const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigatio
           if (!nextRoot || (activeTheme !== 'dark' && activeTheme !== 'light')) return;
           nextRoot.setAttribute('data-theme', activeTheme);
         });
+
+        // A navigation that stays on the same path (the notes tag filter, the
+        // menu link to the page you are on, back/forward between filters) is
+        // not a change of page, so it skips the diagonal wipe. The flag goes on
+        // the incoming <html>, because the wipe's pseudo-elements are styled
+        // from whichever root is current once the swap has happened. The next
+        // swap drops it again with the rest of the old root's attributes.
+        document.addEventListener('astro:before-swap', (event) => {
+          const nextRoot = event.newDocument?.documentElement;
+          if (!nextRoot || !event.from || !event.to) return;
+          if (event.from.pathname === event.to.pathname) {
+            nextRoot.setAttribute('data-same-route', '');
+          } else {
+            nextRoot.removeAttribute('data-same-route');
+          }
+        });
       })();
     </script>
     <meta charset="utf-8" />
@@ -101,6 +118,8 @@ const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigatio
     <meta name="description" content={description} />
     <link rel="icon" href="/ravedeprinz.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/ravedeprinz.svg" />
+    {/* Feed autodiscovery: lets a reader find the notes feed from any page. */}
+    <link rel="alternate" type="application/rss+xml" title="ravedeprinz // Notes" href={`${getSiteUrl()}/rss.xml`} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -169,6 +188,11 @@ const menuNav = (liveHome && liveHome.navigation.length > 0 ? liveHome.navigatio
         from { clip-path: polygon(100% 0, 112% 0, 112% 100%, 100% 100%); }
         to   { clip-path: polygon(0 0, 112% 0, 112% 100%, 0 100%); }
       }
+
+      /* Same path, new content (see the before-swap listener in <head>): swap in
+         place with no wipe. */
+      html[data-same-route]::view-transition-old(root),
+      html[data-same-route]::view-transition-new(root) { animation: none; }
 
       @media (prefers-reduced-motion: reduce) {
         ::view-transition-old(root),

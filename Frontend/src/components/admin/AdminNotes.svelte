@@ -8,6 +8,10 @@ import AdminMarkdownPreview from './AdminMarkdownPreview.svelte';
   import AdminTabs from './AdminTabs.svelte';
   import AdminAccordion from './AdminAccordion.svelte';
   import AdminImageUpload from './AdminImageUpload.svelte';
+  import AdminTagsField from './AdminTagsField.svelte';
+  import { validateNoteTagsInput } from '../../lib/adminValidation';
+  import { collectTags, noteTagList } from '../../lib/noteTags';
+  import type { Note } from '../../lib/cms';
 
   interface Props {
     apiBase: string;
@@ -15,11 +19,29 @@ import AdminMarkdownPreview from './AdminMarkdownPreview.svelte';
 
   const { apiBase } = $props();
 
-  type NoteRow = Record<string, string | number | boolean | null>;
+  type NoteRow = Record<string, string | number | boolean | string[] | null>;
 
   let notes: NoteRow[] = $state([]);
   let status = $state('LOADING…');
   let draft: NoteRow = $state({});
+
+  // A row's tags. A list the form has set (even an empty one, mid-edit) is
+  // taken as it is, so clearing the field is not undone behind your back. Only
+  // a row with no list at all falls back: to the single `tag` from a server that
+  // predates multi-tag notes, or, for a brand-new draft, to `fallback`.
+  function tagsOf(row: NoteRow, fallback: string[] = []): string[] {
+    if (Array.isArray(row.tags)) return row.tags.filter((tag): tag is string => typeof tag === 'string');
+    const legacy = noteTagList({ tag: String(row.tag ?? '') });
+    return legacy.length > 0 ? legacy : fallback;
+  }
+
+  // Every tag already in use, most-used first, offered as click-to-add buttons
+  // so a typo cannot quietly create a near-duplicate tag.
+  const knownTags = $derived(
+    collectTags(notes.map((row) => ({ title: '', slug: '', body: '', tag: String(row.tag ?? ''), tags: tagsOf(row) })) as Note[]).map(
+      (entry) => entry.tag,
+    ),
+  );
 
   function readPreview(row: NoteRow): string {
     return `READ ${String(readingMinutes(String(row.body ?? ''), String(row.image_url ?? ''))).padStart(2, '0')} MIN`;
@@ -44,8 +66,18 @@ import AdminMarkdownPreview from './AdminMarkdownPreview.svelte';
   }
 
   async function saveRow(row: NoteRow, publish = false) {
+    // Same rules as the API, checked here first so a bad tag list keeps what was
+    // typed instead of making a request that is certain to be refused.
+    const checked = validateNoteTagsInput({ tags: tagsOf(row, ['REFLECTION']) });
+    if (!checked.ok) {
+      status = `ERROR // ${checked.error.message}`;
+      return;
+    }
     status = 'SAVING…';
-    const payload = { ...row, published: publish ? true : (row.published ?? false) };
+    // `tag` is the server's copy of the first tag. Sending the stale value back
+    // next to the edited list would be noise, so only `tags` goes.
+    const { tag: _legacyTag, ...rest } = row;
+    const payload = { ...rest, tags: checked.tags, published: publish ? true : (row.published ?? false) };
     const res = row.id
       ? await adminApi(apiBase, `/api/admin/notes/${row.id}`, { method: 'PUT', body: payload })
       : await adminApi(apiBase, '/api/admin/notes', { method: 'POST', body: payload });
@@ -74,7 +106,11 @@ import AdminMarkdownPreview from './AdminMarkdownPreview.svelte';
   <AdminSection eyebrow="NEW NOTE">
     <div class="admin-grid-2">
       <AdminField label="TITLE" value={String(draft.title ?? '')} onChange={(v) => (draft = { ...draft, title: v })} />
-      <AdminField label="TAG" value={String(draft.tag ?? 'REFLECTION')} onChange={(v) => (draft = { ...draft, tag: v })} />
+      <AdminTagsField
+        value={tagsOf(draft, ['REFLECTION'])}
+        suggestions={knownTags}
+        onChange={(tags) => (draft = { ...draft, tags })}
+      />
       <AdminField label="SUBTITLE (META DESC)" value={String(draft.subtitle ?? '')} onChange={(v) => (draft = { ...draft, subtitle: v })} />
       <AdminField label="AUTHOR" value={String(draft.author ?? '')} onChange={(v) => (draft = { ...draft, author: v })} />
       <div class="admin-field"><span class="admin-field-label">READ (COMPUTED)</span><span class="admin-read-preview">{readPreview(draft)}</span></div>
@@ -105,12 +141,16 @@ import AdminMarkdownPreview from './AdminMarkdownPreview.svelte';
       {#each notes as note, index (String(note.id))}
         <AdminAccordion
           title={String(note.title ?? 'UNTITLED')}
-          subtitle={`${note.tag ?? ''} · ${note.published ? 'PUBLISHED' : 'DRAFT'}`}
+          subtitle={`${tagsOf(note).join(' / ')} · ${note.published ? 'PUBLISHED' : 'DRAFT'}`}
           defaultOpen={index === 0}
         >
           <div class="admin-grid-2">
             <AdminField label="TITLE" value={String(note.title ?? '')} onChange={update(index, 'title')} />
-            <AdminField label="TAG" value={String(note.tag ?? '')} onChange={update(index, 'tag')} />
+            <AdminTagsField
+              value={tagsOf(note)}
+              suggestions={knownTags}
+              onChange={(tags) => (notes = notes.map((r, i) => (i === index ? { ...r, tags } : r)))}
+            />
             <AdminField label="SUBTITLE (META DESC)" value={String(note.subtitle ?? '')} onChange={update(index, 'subtitle')} />
             <AdminField label="AUTHOR" value={String(note.author ?? '')} onChange={update(index, 'author')} />
             <div class="admin-field"><span class="admin-field-label">READ (COMPUTED)</span><span class="admin-read-preview">{readPreview(note)}</span></div>

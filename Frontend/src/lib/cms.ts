@@ -91,7 +91,10 @@ export type Note = {
   title: string;
   slug: string;
   body: string;
+  /** The first of `tags`. Older payloads carry only this. */
   tag: string;
+  /** 1 to 3 tags in display order. Absent on payloads from before multi-tag notes. */
+  tags?: string[] | null;
   author?: string | null;
   subtitle?: string | null;
   image_url?: string | null;
