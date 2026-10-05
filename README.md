@@ -32,6 +32,8 @@ Key paths, briefly:
 - `Frontend/src/middleware.ts` gates `/admin/*` server-side by checking the session against the API.
 - `Frontend/src/lib/api.ts` wraps every CMS call in a three-state result (`ok` / `not-found` / `unavailable`) that never throws.
 - `Frontend/src/lib/seo.ts` centralizes canonical URLs and OG metadata.
+- `Frontend/src/pages/rss.xml.ts` serves the notes feed (RSS 2.0, latest 20, excerpt plus link), built by `lib/rss.ts`. It answers 503 with `Retry-After` when the API is down, so feed readers keep what they have.
+- A note has one to three tags (`notes.tags`, each up to 16 characters; `notes.tag` stays equal to the first for older clients). `/notes?tag=A&tag=B` shows notes carrying every selected tag (`lib/noteTags.ts`), and each note links to its newer and older neighbours (`lib/noteNav.ts`). Both use the same newest-first order as the home strip.
 - `Backend/src/db.ts` owns the SQL client and forward-only migrations tracked in `schema_migrations`.
 - `Backend/src/auth/` is the whole auth stack: password hashing, token generation, session cookie helpers.
 - `Backend/src/routes/` splits into content (public reads), auth, admin (writes), and files (`/uploads/*`).
