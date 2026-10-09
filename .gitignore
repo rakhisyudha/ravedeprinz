@@ -1,9 +1,31 @@
 # Root ignores for local leftovers not covered by Frontend/.gitignore and Backend/.gitignore
 .next/
 node_modules/
-dev-server.log
-dummy/
-Dummy/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Assistant / editor workspace folders
 .commandcode/
 .kiro/
+.claude/
+.cursor/
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local scratch
+dummy/
+Dummy/
+
+# Local agent notes and scratch docs — keep them off GitHub
 *.md
