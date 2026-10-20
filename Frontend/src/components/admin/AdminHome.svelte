@@ -81,9 +81,9 @@
       <AdminField label="ARCHIVE LABEL" value={String(content.archive_label ?? '')} onChange={set('archive_label')} />
       <AdminField label="ARCHIVE NUMBER" value={String(content.archive_number ?? '')} onChange={set('archive_number')} />
       <AdminField label="HEADLINE LINE ONE" value={String(content.headline_line_one ?? '')} onChange={set('headline_line_one')} />
-      <AdminField label="HEADLINE LINE TWO" value={String(content.headline_line_two ?? '')} onChange={set('headline_line_two')} />
+      <AdminField label="HEADLINE LINE TWO (FALLBACK WORD)" value={String(content.headline_line_two ?? '')} onChange={set('headline_line_two')} />
       <AdminField label="HEADLINE LINE THREE" value={String(content.headline_line_three ?? '')} onChange={set('headline_line_three')} />
-      <AdminField label="HEADLINE ACCENT" value={String(content.headline_accent ?? '')} onChange={set('headline_accent')} />
+      <AdminField label="HEADLINE ACCENT (RED WORD)" value={String(content.headline_accent ?? '')} onChange={set('headline_accent')} />
       <AdminField label="HEADLINE META" value={String(content.headline_meta ?? '')} onChange={set('headline_meta')} />
       <AdminField label="CTA LABEL" value={String(content.cta_label ?? '')} onChange={set('cta_label')} />
       <AdminField label="CTA URL" value={String(content.cta_url ?? '')} onChange={set('cta_url')} />
@@ -93,11 +93,8 @@
 {/snippet}
 
 {#snippet hudTab()}
-  <AdminSection eyebrow="HUD // 04 → 05 HERE">
+  <AdminSection eyebrow="HUD // CARD STICKERS">
     <div class="admin-grid-2">
-      <AdminField label="YEARS BUILDING" type="number" value={String(content.years_building ?? 4)} onChange={set('years_building')} />
-      <AdminField label="HUD LABEL" value={String(content.hud_label ?? '')} onChange={set('hud_label')} />
-      <AdminField label="HUD SUBTITLE" value={String(content.hud_subtitle ?? '')} onChange={set('hud_subtitle')} />
       <AdminField label="NOISE TOP" value={String(content.hud_noise_top ?? '')} onChange={set('hud_noise_top')} />
       <AdminField label="NOISE BOTTOM" value={String(content.hud_noise_bottom ?? '')} onChange={set('hud_noise_bottom')} />
     </div>

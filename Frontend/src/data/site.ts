@@ -28,9 +28,6 @@ export const homeContent = {
     'I’m Rakhis de Yudha. I study computer science at Binus Online Learning and spend most of my building time around Go, PostgreSQL, React, Docker, and the questions underneath a product’s interface.',
   cta_label: 'ENTER THE ARCHIVE',
   cta_url: '/projects',
-  hud_label: 'YEARS BUILDING',
-  hud_subtitle: 'BACKEND / SYSTEMS / GO',
-  years_building: 4,
   hud_noise_top: '// SYSTEM_04',
   hud_noise_bottom: 'BUILD / REPEAT / SHIP',
 };
