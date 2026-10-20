@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import HudPanel from '../components/HudPanel.svelte';
+import HeroCard from '../components/home/HeroCard.astro';
 import FeaturedProjects from '../components/home/FeaturedProjects.astro';
 import LatestNotes from '../components/home/LatestNotes.astro';
 import NowStatusLine from '../components/home/NowStatusLine.astro';
@@ -68,10 +68,7 @@ const archiveIndex = navigation.filter((item) => ARCHIVE_INDEX_KEYS.has(item.pag
       </section>
       <aside class="profile-column">
         <div class="hud-only">
-          <HudPanel
-            client:visible
-            years={content.years_building}
-            label={content.hud_label}
+          <HeroCard
             noiseTop={content.hud_noise_top}
             noiseBottom={content.hud_noise_bottom}
           />

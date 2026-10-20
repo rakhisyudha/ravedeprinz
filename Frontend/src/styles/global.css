@@ -301,8 +301,15 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .cut { clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,28px 100%,0 calc(100% - 28px)); }
 .cut-small { clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px)); }
 .panel { background:var(--surface); border:1px solid var(--line-16); box-shadow:10px 10px 0 var(--offset-soft); }
-.hud-number { color:var(--red); }.hud-stat { border-color:var(--line-14); }
-.hud-panel { min-height:440px; position:relative; transform:rotate(-6deg); transform-origin:center; border:4px solid var(--red); background:var(--background); box-shadow:12px 12px 0 var(--secondary); clip-path:polygon(0 4%,8% 0,34% 2%,58% 0,100% 7%,97% 31%,100% 61%,94% 100%,67% 97%,42% 100%,12% 96%,0 74%,3% 43%); }
+/* The card's numeral styles (hud-number / hud-number-reversed / hud-of /
+   hud-stat) were removed with the "04 years building" claim — the card now
+   carries the contribution-grid R inside it (components/home/HeroCard.astro
+   + RGrid.svelte). Panel chrome stays as below. */
+/* The card is now sized by the R grid inside it (RGrid.svelte) rather than a
+   fixed min-height, so there is no standing band of empty space; the tilt is
+   eased from -6deg to -3deg so the taller card sits calmer against the
+   headline. The red offset glitch shadow stays untouched. */
+.hud-panel { position:relative; transform:rotate(-3deg); transform-origin:center; border:4px solid var(--red); background:var(--background); box-shadow:12px 12px 0 var(--secondary); clip-path:polygon(0 4%,8% 0,34% 2%,58% 0,100% 7%,97% 31%,100% 61%,94% 100%,67% 97%,42% 100%,12% 96%,0 74%,3% 43%); }
 .hud-panel::before { content:''; position:absolute; inset:0; z-index:1; background:var(--primary); opacity:.12; clip-path:polygon(0 0,100% 7%,100% 18%,0 11%); }
 .hud-panel::after { content:''; position:absolute; top:46%; left:-5%; width:110%; height:15px; z-index:15; background:var(--primary); transform:rotate(-2deg); opacity:.8; box-shadow:0 0 10px color-mix(in srgb,var(--primary) 72%,transparent); animation:hud-glitch 2.2s steps(2,end) infinite; }
 .hud-slice { left:5%; width:90%; height:3px; background:var(--text); opacity:.75; box-shadow:0 0 7px color-mix(in srgb,var(--primary) 62%,transparent); }
@@ -311,9 +318,6 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .hud-notch { position:absolute; z-index:25; width:0; height:0; border-style:solid; }
 .hud-notch-top { top:-4px; right:28px; border-width:0 22px 22px 0; border-color:transparent var(--red) transparent transparent; }
 .hud-notch-bottom { bottom:-4px; left:38px; border-width:20px 0 0 25px; border-color:transparent transparent transparent var(--text); }
-.hud-number { color:var(--text); -webkit-text-stroke:3px var(--background); text-shadow:7px 7px 0 var(--red); transform:skewX(-7deg); }
-.hud-number-reversed { display:block; width:max-content; transform:skewX(-7deg); text-shadow:7px 7px 0 var(--red); }
-.hud-of { display:inline-block; margin:0 .08em; color:var(--text); font:400 1.18em/1 var(--font-display); letter-spacing:-.05em; transform:skewX(-7deg) translateY(-.06em); -webkit-text-stroke:3px var(--background); text-shadow:5px 5px 0 var(--red); }
 .hud-noise { position:absolute; color:var(--text); font:var(--type-micro) var(--font-ui); letter-spacing:.16em; }
 .hud-noise-top { top:-8px; right:5px; transform:rotate(-8deg); }.hud-noise-bottom { position:static; align-self:flex-end; margin:20px -6px 4px 0; padding:8px 12px; background:var(--red); color:var(--paper); font-size:var(--type-label); box-shadow:4px 4px 0 var(--dark-red); transform:rotate(-2deg); }
 @media (max-width:600px) { .hud-noise-top { right:12px; } }
@@ -522,8 +526,18 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 .scene-note { position:absolute; right:max(64px, calc(64px + env(safe-area-inset-right, 0px))); bottom:calc(40px + env(safe-area-inset-bottom, 0px)); z-index:2; max-width:220px; border-left:2px solid var(--scene-dark-red); padding-left:13px; color:var(--scene-gray); font-size:var(--type-label); line-height:1.7; }
 
 /* home */
-.home-page { position:relative; min-height:100vh; overflow:hidden; padding:calc(148px + env(safe-area-inset-top, 0px)) 48px 80px 130px; }
-.home-page::before { content:'R'; position:absolute; right:-40px; top:65px; color:var(--watermark); font:400 55vw/.7 var(--font-display); pointer-events:none; }
+.home-page { position:relative; min-height:100vh; overflow-x:clip; padding:calc(148px + env(safe-area-inset-top, 0px)) 48px 80px 130px; }
+/* Hero watermark: the card's "years" claim is gone, and the solid ghost R
+   with it. In its place, the trailing character of the ravedeprinz_ logo —
+   a huge, blinking underscore cursor — cropped at the same top-right
+   corner. line-height 0 collapses the line box so the underscore's bar
+   paints ~0.35em under the box top, keeping it in the hero's upper-right
+   field at every width while the glyph still renders in full. Very dim by
+   construction: --watermark is a few shades off the page background in
+   either theme. */
+.home-page::before { content:'_'; position:absolute; right:-40px; top:65px; color:var(--watermark); font:400 55vw/0 var(--font-display); pointer-events:none; animation:watermark-caret 1.2s linear infinite; }
+@keyframes watermark-caret { 0%,49% { opacity:1; } 50%,100% { opacity:0; } }
+@media (prefers-reduced-motion:reduce) { .home-page::before { animation:none; } }
 .home-layout { position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:7vw; align-items:center; max-width:1430px; min-height:calc(100vh - 230px); margin:0 auto; }
 .home-copy { position:relative; }
 .home-copy h1 { max-width:850px; margin:0; font-size:var(--type-display-xl); letter-spacing:-.03em; }
@@ -536,7 +550,67 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
 /* Primary CTA plus the secondary CV download. They share a line on desktop and
    wrap onto their own lines on narrow viewports, so neither is ever clipped. */
 .home-cta-row { display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
-.profile-column { position:relative; min-height:600px; }.profile-slash { position:relative; min-height:520px; transform:rotate(7deg); }.hud-only { position:relative; z-index:3; width:min(100%,400px); margin:80px auto 0; }
+/* The card shrink-wraps to the R grid and is pinned to the column's right
+   edge, then pushes past the content container into the page gutter — the
+   tilt reads as if the card is sliding out of the layout. The overhang is
+   clipped by .home-page's overflow-x: clip, so it never creates a
+   horizontal scrollbar. Mobile recenters instead: there the card sits
+   under the headline and a bleed would just crowd the gutter. */
+.profile-column { position:relative; min-height:600px; }.profile-slash { position:relative; min-height:520px; transform:rotate(7deg); }.hud-only { position:relative; z-index:3; width:max-content; max-width:100%; margin:80px -56px 0 auto; }
+@media (max-width:900px) { .hud-only { margin:44px auto 0; } }
+/* Hero card on phones.
+   The panel stops shrink-wrapping around the desktop R and becomes the
+   container instead: full content width, 4/5 aspect, no fixed pixels, split
+   into three zones (label strip / R / tag strip) so neither sticker can land
+   on the cells. Decorative glitch slices and the panel's animated glitch bar
+   are dropped here - at this size they cut straight across the letter -
+   leaving the clip-path edge and the single offset shadow to carry the card.
+   Tilt softens from -3deg to -2deg. The R itself is sized from the R zone
+   (container-type: size -> cqw/cqh) inside RGrid's own <=640px block. */
+@media (max-width:640px) {
+  .hud-only { width:100%; max-width:none; margin:44px 0 0; }
+  /* The panel's own offset box-shadow is clipped away by its clip-path, so
+     the single mobile shadow rides on a pseudo-element that repeats the
+     panel's polygon, rotated with it and offset by the same 12px/12px in
+     the same token. Static: no filter over the continuously animating grid
+     (a drop-shadow filter here would re-filter every animation frame). */
+  .hud-only::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    background:var(--secondary);
+    clip-path:polygon(0 4%,8% 0,34% 2%,58% 0,100% 7%,97% 31%,100% 61%,94% 100%,67% 97%,42% 100%,12% 96%,0 74%,3% 43%);
+    transform:translate(12px,12px) rotate(-2deg);
+    pointer-events:none;
+  }
+  .hud-panel { aspect-ratio:4 / 5; padding:12px; transform:rotate(-2deg); box-shadow:none; }
+  .hud-panel::before, .hud-panel::after, .hud-slice, .hud-notch { display:none; }
+  /* The zones strip is pinned to the panel's padding box instead of flowing
+     in it, so the middle 1fr row — and therefore the R zone's cqh — derives
+     purely from the panel's aspect-ratio, with no percentage-height chain in
+     between. Rows: label strip / R / tag strip; both stickers are grid items
+     now, so they can never land on the cells.
+     The insets are sized against the panel's clip-path: the polygon slices
+     the top-right corner down to 7% height and the right edge in to 94% near
+     the bottom, so a right-aligned sticker needs ~30px from the edge to stay
+     inside the cut at every width in the 316-420px mobile range (checked for
+     W = 316 / 386 / 420 against the two boundary segments). */
+  .hud-zones { position:absolute; inset:34px 26px 20px; display:grid; grid-template-columns:100%; grid-template-rows:auto minmax(0,1fr) auto; gap:6px; align-items:stretch; justify-content:stretch; }
+  .hud-noise-top { position:static; transform:none; justify-self:end; text-align:right; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hud-noise-bottom { position:static; align-self:end; margin:0; padding:6px 10px; transform:none; justify-self:end; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* The zone is 86% of the strips width, centered: the card is 4/5 but the
+     label/tag rows consume ~51px, so a full-width zone would be wider than
+     the R's own 15.16:19.88 aspect and the letter would sit height-bound
+     with ~15% side air. 86% is the balance point across the 316-420px range
+     (checked at 316/386/420: leaves ~9-10% padding on both axes inside the
+     R area, per the min() coefficients in RGrid). */
+  .r-zone { container-type:size; height:100%; min-height:0; width:86%; justify-self:center; overflow:hidden; }
+  /* The card is full-width and much taller now, so the column's absolutely
+     pinned links would sit behind it (panel z-index 3 > links z-index 2).
+     Let them flow beneath the card instead, keeping their right alignment. */
+  .quick-links { position:static; margin-top:20px; justify-content:flex-end; }
+}
 .profile-slash::before { content:''; position:absolute; inset:25px 30px 0 0; background:var(--red); clip-path:polygon(15% 0,100% 0,85% 100%,0 100%); }
 .profile-slash img { position:absolute; inset:59px 58px 44px 45px; width:calc(100% - 103px); height:calc(100% - 103px); object-fit:cover; filter:grayscale(1) contrast(1.25); clip-path:polygon(15% 0,100% 0,85% 100%,0 100%); }
 .profile-caption { position:absolute; right:0; bottom:122px; color:var(--paper); font:400 16px var(--font-display); transform:rotate(-7deg); }

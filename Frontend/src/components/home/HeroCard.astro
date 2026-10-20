@@ -1,0 +1,37 @@
+---
+// The hero's tilted HUD card: the Persona-5 chrome (red offset/glitch
+// shadow, slices, notches) around the contribution-grid "R". The card used
+// to carry the "04 years building" claim; the claim is gone — what remains
+// is the system labels and the live grid.
+//
+// Sizing: the grid derives its height from the display-type token
+// (see RGrid), so the card shrink-wraps around it with only a hair of
+// padding — the R fills ~85-90% of the card and there is no standing
+// empty band at the bottom or sides, unlike the old numeral layout.
+import RGrid from './RGrid.svelte';
+
+interface Props {
+  noiseTop?: string;
+  noiseBottom?: string;
+}
+
+const {
+  noiseTop = '// SYSTEM_04',
+  noiseBottom = 'BUILD / REPEAT / SHIP',
+} = Astro.props;
+---
+
+<div class="hud-panel cut relative isolate overflow-hidden p-4 sm:p-5">
+  <div class="hud-slice hud-slice-one pointer-events-none absolute z-10"></div>
+  <div class="hud-slice hud-slice-two pointer-events-none absolute z-10"></div>
+  <span class="hud-notch hud-notch-top"></span>
+  <span class="hud-notch hud-notch-bottom"></span>
+
+  <div class="hud-zones relative z-20 flex flex-col items-center justify-center">
+    <span class="hud-noise hud-noise-top">{noiseTop}</span>
+    <div class="r-zone">
+      <RGrid client:visible />
+    </div>
+    <span class="hud-noise hud-noise-bottom">{noiseBottom}</span>
+  </div>
+</div>
