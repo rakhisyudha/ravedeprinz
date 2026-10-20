@@ -114,10 +114,16 @@ beforeAll(async () => {
 
   // Seed one project BEFORE migration 006 so the test can prove the
   // migration is additive for rows that already exist.
+  // Read the rows themselves, not `.values()`: in Bun 1.4 awaiting a
+  // query yields row objects, while calling `.values()` on that result
+  // returns an object with no `length` and a `map` that is not an array
+  // — so `columns.length` would be undefined and the probe would never
+  // be seeded. `sql`...`.values()` (without the await) is the tuple
+  // form; the row form is the clearest here.
   const columns = (await sql`
     select column_name from information_schema.columns
     where table_name = 'projects' and column_name = 'problem'
-  `).values() as unknown[][];
+  `) as Array<{ column_name: string }>;
   if (columns.length === 0) {
     await sql`delete from projects where slug = ${PROBE_SLUG}`;
     const inserted = (await sql`
@@ -174,9 +180,11 @@ describe('migration 006 is additive', () => {
     if (rows.length === 0) {
       // Another test file migrated the database first; insert now and assert
       // the same defaults, which still proves the columns exist and default.
+      // `featured` is set here too: the row inserted above carries it, and
+      // the assertion below expects it whichever path created the row.
       await sql`
-        insert into projects (title, slug, year, status, sort_order)
-        values ('Probe', ${PROBE_SLUG}, 2020, 'FINISHED', 3)
+        insert into projects (title, slug, year, status, sort_order, featured)
+        values ('Probe', ${PROBE_SLUG}, 2020, 'FINISHED', 3, true)
       `;
     }
     const row = (await sql`select * from projects where slug = ${PROBE_SLUG}`).at(0) as Record<
@@ -201,8 +209,8 @@ describe('migration 006 is additive', () => {
       where table_name = 'site_settings'
         and column_name in ('cv_url', 'availability_status', 'availability_note')
       order by column_name
-    `).values() as unknown[][];
-    expect(columns.map((row) => row[0])).toEqual(['availability_note', 'availability_status', 'cv_url']);
+    `) as Array<{ column_name: string }>;
+    expect(columns.map((row) => row.column_name)).toEqual(['availability_note', 'availability_status', 'cv_url']);
   });
 
   test('the public site payload carries the new columns', async () => {
@@ -330,7 +338,7 @@ describe('project writes', () => {
     const other = (await sql`select id, title, description from projects where slug = ${OTHER_SLUG}`).at(
       0,
     ) as Record<string, unknown>;
-    const target = (await sql`select id, title from projects where slug = ${CASE_SLUG}`).at(0) as Record<
+    const target = (await sql`select id, title, slug from projects where slug = ${CASE_SLUG}`).at(0) as Record<
       string,
       unknown
     >;
