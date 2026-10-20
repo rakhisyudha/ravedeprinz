@@ -62,13 +62,13 @@ async function main(): Promise<void> {
     insert into home_content (
       archive_label, archive_number, headline_line_one, headline_line_two,
       headline_line_three, headline_accent, headline_period, headline_meta,
-      intro, cta_label, cta_url, hud_label, hud_subtitle, years_building,
+      intro, cta_label, cta_url,
       hud_noise_top, hud_noise_bottom
     ) values (
       'PERSONAL ARCHIVE', '001', 'I DON''T', 'GUESS.', 'I DEBUG.', 'GUESS.', '.',
       'BACKEND / SYSTEMS / GO',
       'I’m Rakhis de Yudha. I study computer science at Binus Online Learning and spend most of my building time around Go, PostgreSQL, React, Docker, and the questions underneath a product’s interface.',
-      'ENTER THE ARCHIVE', '/projects', 'YEARS BUILDING', 'BACKEND / SYSTEMS / GO', 4,
+      'ENTER THE ARCHIVE', '/projects',
       '// SYSTEM_04', 'BUILD / REPEAT / SHIP'
     )
   `;

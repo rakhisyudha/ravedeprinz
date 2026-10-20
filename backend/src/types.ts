@@ -27,9 +27,6 @@ export type HomeContent = {
   intro: string;
   cta_label: string;
   cta_url: string;
-  hud_label: string;
-  hud_subtitle: string;
-  years_building: number;
   hud_noise_top: string;
   hud_noise_bottom: string;
   updated_at: string;
