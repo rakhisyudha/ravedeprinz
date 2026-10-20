@@ -315,6 +315,9 @@ button:active,a:active { transform:scale(.96); filter:brightness(1.18); }
 .hud-slice { left:5%; width:90%; height:3px; background:var(--text); opacity:.75; box-shadow:0 0 7px color-mix(in srgb,var(--primary) 62%,transparent); }
 .hud-slice-one { top:31%; transform:translateX(7px) rotate(-3deg); animation:hud-glitch 1.8s steps(2,end) infinite; }
 .hud-slice-two { top:67%; transform:translateX(-11px) rotate(2deg); background:var(--red); animation:hud-glitch 1.35s steps(2,end) .35s infinite; }
+/* The third sliver exists for the phone card only, where it sits in the
+   gutter beside the letter. */
+.hud-slice-three { display:none; }
 .hud-notch { position:absolute; z-index:25; width:0; height:0; border-style:solid; }
 .hud-notch-top { top:-4px; right:28px; border-width:0 22px 22px 0; border-color:transparent var(--red) transparent transparent; }
 .hud-notch-bottom { bottom:-4px; left:38px; border-width:20px 0 0 25px; border-color:transparent transparent transparent var(--text); }
@@ -562,9 +565,13 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
    The panel stops shrink-wrapping around the desktop R and becomes the
    container instead: full content width, 4/5 aspect, no fixed pixels, split
    into three zones (label strip / R / tag strip) so neither sticker can land
-   on the cells. Decorative glitch slices and the panel's animated glitch bar
-   are dropped here - at this size they cut straight across the letter -
-   leaving the clip-path edge and the single offset shadow to carry the card.
+   on the cells. The desktop's continuously glitching slices and the panel's
+   animated glitch bar are replaced here by a controlled burst: a few
+   decorative slivers in the frame bands, a scanline that sweeps once per
+   cycle, and a short random jolt (the slices, the ghost and the card
+   jitter live in the component and the script beside it). The burst never
+   starts under reduced motion, and the letter is plain the rest of the
+   time.
    Tilt softens from -3deg to -2deg. The R itself is sized from the R zone
    (container-type: size -> cqw/cqh) inside RGrid's own <=640px block. */
 @media (max-width:640px) {
@@ -585,7 +592,87 @@ html[data-theme="light"] .theme-toggle .theme-icon-sun,
     pointer-events:none;
   }
   .hud-panel { aspect-ratio:4 / 5; padding:12px; transform:rotate(-2deg); box-shadow:none; }
-  .hud-panel::before, .hud-panel::after, .hud-slice, .hud-notch { display:none; }
+  .hud-panel::before, .hud-notch { display:none; }
+  /* The frame slivers. On the desktop card they sit at 31% and 67% of the
+     panel, straight across the letter. The phone card has free bands
+     instead: above the label strip, below the tag strip, and a wide
+     gutter beside the R, so the slivers move into those and stay clear
+     of the cells, the label and the tag at every card width. Red, like
+     the frame, and dim enough to stay decoration. */
+  .hud-slice {
+    display:block;
+    left:auto;
+    top:auto;
+    bottom:auto;
+    height:3px;
+    background:var(--primary);
+    opacity:.55;
+    box-shadow:0 0 6px color-mix(in srgb, var(--primary) 55%, transparent);
+    transform:none;
+    animation:none;
+  }
+  .hud-slice-one { top:15px; left:14px; width:34%; }
+  .hud-slice-two { bottom:8px; left:14px; width:20%; }
+  .hud-slice-three { top:50%; left:14px; width:16px; }
+  /* The scanline. One thin band of red sweeps down the card once per
+     glitch cycle, at a low enough opacity to read as a CRT pass rather
+     than a highlight. It is a pseudo-element on the panel, so it costs
+     one element and no layout. */
+  .hud-panel::after {
+    content:'';
+    display:block;
+    position:absolute;
+    top:-24px;
+    left:0;
+    width:100%;
+    height:calc(100% + 48px);
+    z-index:15;
+    background:linear-gradient(180deg, transparent 0 10px, color-mix(in srgb, var(--primary) 26%, transparent) 13px, color-mix(in srgb, var(--primary) 6%, transparent) 21px, transparent 26px);
+    opacity:0;
+    /* The desktop bar animates on its own; here it only sweeps when a
+       burst asks for it. */
+    animation:none;
+    pointer-events:none;
+  }
+  .hud-only.is-scanning .hud-panel::after { animation:hud-scan 900ms ease-out; }
+  @keyframes hud-scan { 0% { transform:translateY(0); opacity:0; } 12% { opacity:1; } 100% { transform:translateY(100%); opacity:0; } }
+  /* The light theme restyles the card chrome for the desktop card: faint
+     grey slices and a slow pulsing bar. On the phone card the slivers are
+     red marks in the frame and the bar is the burst's scanline, so the
+     light theme gets its own values here. Same rule shape, later in the
+     file, so it wins over the light-theme block above. */
+  html[data-theme="light"] .hud-slice {
+    background:var(--primary);
+    opacity:.45;
+    box-shadow:0 0 6px color-mix(in srgb, var(--primary) 45%, transparent);
+    animation:none;
+  }
+  html[data-theme="light"] .hud-slice-two { opacity:.4; }
+  html[data-theme="light"] .hud-panel::after {
+    top:-24px;
+    left:0;
+    width:100%;
+    height:calc(100% + 48px);
+    opacity:0;
+    box-shadow:none;
+    animation:none;
+  }
+  /* The card jitter. The wrapper carries it so the card and its offset
+     shadow move together and never separate. A pixel or two, for the
+     length of the burst. */
+  .hud-only.is-glitching { animation:hud-jitter 200ms steps(3,end); }
+  @keyframes hud-jitter {
+    0% { transform:translate(0,0); }
+    33% { transform:translate(var(--glitch-jx,1.5px), var(--glitch-jy,1px)); }
+    66% { transform:translate(calc(var(--glitch-jx,1.5px) * -1), calc(var(--glitch-jy,1px) * -1)); }
+    100% { transform:translate(0,0); }
+  }
+  /* Reduced motion: the slivers and the offset shadow stay (they are
+     static decoration), but nothing moves and no scanline runs. */
+  @media (prefers-reduced-motion: reduce) {
+    .hud-only.is-glitching, .hud-only.is-scanning { animation:none; }
+    .hud-panel::after { display:none; }
+  }
   /* The zones strip is pinned to the panel's padding box instead of flowing
      in it, so the middle 1fr row — and therefore the R zone's cqh — derives
      purely from the panel's aspect-ratio, with no percentage-height chain in

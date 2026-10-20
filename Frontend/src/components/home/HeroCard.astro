@@ -21,9 +21,10 @@ const {
 } = Astro.props;
 ---
 
-<div class="hud-panel cut relative isolate overflow-hidden p-4 sm:p-5">
+<div class="hud-panel cut relative isolate overflow-hidden p-4 sm:p-5" data-glitch-card>
   <div class="hud-slice hud-slice-one pointer-events-none absolute z-10"></div>
   <div class="hud-slice hud-slice-two pointer-events-none absolute z-10"></div>
+  <div class="hud-slice hud-slice-three pointer-events-none absolute z-10"></div>
   <span class="hud-notch hud-notch-top"></span>
   <span class="hud-notch hud-notch-bottom"></span>
 
@@ -35,3 +36,76 @@ const {
     <span class="hud-noise hud-noise-bottom">{noiseBottom}</span>
   </div>
 </div>
+
+<script>
+  // The phone card's glitch loop.
+  //
+  // A burst is a short, stepped jolt: two or three slices of the letter
+  // slide sideways, a ghost copy of the letter splits off in the accent
+  // colour, and the card itself jitters a pixel or two. It runs every
+  // 4-6 seconds, the interval is drawn after mount (never during SSR),
+  // and the burst is over in 200ms, so the letter is readable the rest
+  // of the time.
+  //
+  // The loop is phone-only and it stands down when the tab is hidden or
+  // the card is off-screen, and under prefers-reduced-motion it never
+  // starts at all. Everything it drives is a transform, an opacity or a
+  // clip-path, so no layout is touched and nothing is re-filtered.
+  const MOBILE = '(max-width: 640px)';
+  const REDUCE = '(prefers-reduced-motion: reduce)';
+
+  const mobile = window.matchMedia(MOBILE);
+  const reduce = window.matchMedia(REDUCE);
+
+  /** A random number in [min, max). */
+  const between = (min: number, max: number) => min + Math.random() * (max - min);
+  /** A random sign, so consecutive slices break in different directions. */
+  const direction = () => (Math.random() < 0.5 ? -1 : 1);
+
+  for (const panel of document.querySelectorAll<HTMLElement>('[data-glitch-card]')) {
+    // The wrapper carries the class and the random values: the card and
+    // its offset shadow live inside it, so both move together.
+    const card = panel.closest<HTMLElement>('.hud-only') ?? panel;
+
+    let onScreen = false;
+    let tabVisible = !document.hidden;
+
+    const burst = () => {
+      card.style.setProperty('--glitch-shift-a', `${(between(3, 8) * direction()).toFixed(1)}px`);
+      card.style.setProperty('--glitch-shift-b', `${(between(3, 8) * direction()).toFixed(1)}px`);
+      card.style.setProperty('--glitch-shift-c', `${(between(3, 8) * direction()).toFixed(1)}px`);
+      card.style.setProperty('--glitch-ghost-x', `${between(2, 3).toFixed(1)}px`);
+      card.style.setProperty('--glitch-jx', `${(between(1, 2) * direction()).toFixed(1)}px`);
+      card.style.setProperty('--glitch-jy', `${(between(1, 2) * direction()).toFixed(1)}px`);
+
+      card.classList.add('is-glitching');
+      card.classList.add('is-scanning');
+      window.setTimeout(() => card.classList.remove('is-glitching'), 200);
+      window.setTimeout(() => card.classList.remove('is-scanning'), 900);
+    };
+
+    const tick = () => {
+      window.setTimeout(() => {
+        if (onScreen && tabVisible && mobile.matches && !reduce.matches) burst();
+        tick();
+      }, between(4000, 6000));
+    };
+
+    // Off-screen cards do not glitch: the hero is the first thing on the
+    // page, but the card is also the one element that can sit below the
+    // fold on a short screen.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry?.isIntersecting ?? false;
+      },
+      { threshold: 0.01 },
+    );
+    observer.observe(panel);
+
+    document.addEventListener('visibilitychange', () => {
+      tabVisible = !document.hidden;
+    });
+
+    tick();
+  }
+</script>
